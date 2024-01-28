@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Actual Budget Linking</title>
+    </head>
+    <body>
+        <h1>Import transactions into ActualBudget</h1>
+            <h2>Linked Accounts</h2>
+            {% if linkedAccounts %}
+                <p>Click Import to import transactions from the appropriate bank into Actual</p>
+                <ul>
+                    {% for account in linkedAccounts %}
+                        <form action="/import" method="post">
+                            <li>{{ account }}: <input type="submit" value="Import to ActualBudget" id="{{ account }}" onclick="disableImport(this)" {{ button_status }}></br></li>
+                        </form>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No accounts were linked. Please Click Reset Links below</p>
+            {% endif %}
+            {% if unlinkedAccounts %}
+                <h2>Unlinked Accounts</h2>
+                
+                    <ul>
+                        {% for account in unlinkedAccounts %}
+                            <li>{{ account }}:</li>
+                        {% endfor %}
+                    </ul>
+            {% endif %}
+            <form action="/reset" method="get" onsubmit="disableButtons();"> 
+                <p>If you would like to reset your links, click the following:</p>
+                <p><input type="submit" value="Reset Links" {{ button_status }}></p>
+            </form>
+            <form action="/start_schedule" method="post" onsubmit=""> 
+                <p>Schedule your import to run once a day by clicking below</p>
+                <p><input id="start" type="submit" value="Schedule Automatic Import" {{ button_status }}></p>
+            </form>
+            <form action="/stop_schedule" method="post" onsubmit="" > 
+                <p>Stop the previous schedule</p>
+                <p><input id="stop" type="submit" value="Stop Automatic Imports" {{ btn_stop_status }}></p>
+            </form>
+            <script>
+                function disableImport(button)
+                {
+                    button.disabled = true;
+                    button.value = "Importing..."
+                }
+
+                function disableButtons()
+                {
+                    let inputs = document.querySelectorAll("input[type='submit']");
+                    // Add a click event listener to each input
+                    for (var i = 0; i < inputs.length; i++) {
+                        inputs[i].disabled = true;
+                        inputs[i].value = "Resetting..."
+                    }
+                }
+        </script>
+    </body>
+</html>

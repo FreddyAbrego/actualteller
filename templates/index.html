@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Actual Budget Linking</title>
+  </head>
+  <body>
+    <h1>Account Linking</h1>
+      <form action="/submit" method="post" onsubmit="return disableButtons(this)">
+        {% if actualAccounts %}
+          {% if tellerAccounts %} 
+          <h2>Actual Budget Accounts</h2>            
+            <ul>
+              {% for actualAccount in actualAccounts %}
+                <label for="account-select-{{ actualAccount }}">Link account: {{ actualAccount }}</label>
+                  <li>
+                    <select onchange="checkSelects(this);" name="account-select-{{ actualAccount }}">
+                      <option selected value="">--Select an Account to Link--</option>
+                      {% for name, id in tellerAccounts.items() %}
+                        <option value="{{ id }}">{{ name }}</option>
+                      {% endfor %}
+                    </select>                       
+                  </li>
+            {% endfor %}
+            </ul>
+            <p><input id="submit" type="submit" value="Submit"></p>
+            {% else %}
+              <p>No Teller Accounts were found. Please check the .env file and set the Teller variables</p>
+            {% endif %}
+        {% else %}
+          <p>No Actual Budget Accounts were found. Please check the .env file and set the Actual Variables</p>
+        {% endif %}    
+      </form>
+    <script>
+      function onLoad() {
+        var button = document.getElementById("submit");
+        button.disabled = true;
+        // Get all the select elements in the document
+        var selects = document.querySelectorAll("select");
+        
+        // Loop through each select element
+        for (var i = 0; i < selects.length; i++) {
+          // Get the first option of the select element
+          var firstOption = selects[i].options[0];
+
+          // Set the select element's value to the first option's value
+          selects[i].value = firstOption.value;
+        }
+      }
+
+      function disableButtons(button) {
+        button.disable = true;
+        button.value = "Linking Accounts..."
+      }
+
+      // Attach the function to the window's load event
+      window.addEventListener("load", onLoad);
+      // window.addEventListener("redirected", onLoad);
+
+      // This enables and disables the Submit button when this is empty and also disables an option if it is already selected
+      function checkSelects(selectElement){
+        var enableSubmit = false;
+        var selects = document.querySelectorAll("select");
+        var button = document.getElementById("submit"); 
+        for (let i = 0; i < selects.length; i++)
+        {
+          let selectedValue = selects[i].options[selects[i].selectedIndex].value;
+          if (selectedValue != "")
+          {
+            enableSubmit = true;
+            break;
+          }
+        }
+        button.disabled = !enableSubmit;
+        
+        // This disables the option to all other selects when it is changed. 
+        var selectedOption = selectElement.selectedIndex;
+        for (var i = 0; i < selects.length; i++) {
+          if (selects[i] == selectElement)
+            continue; // Skip the current select element
+          selects[i].options[selectedOption].disabled = true;
+          selects[i].options[0].disabled = false; // always allows the default option to be selected
+        }
+        var previousOption = selectElement.getAttribute('data-previous');
+        if (previousOption != null) {
+          for (var i = 0; i < selects.length; i++) {
+            if (selects[i] == selectElement)
+              continue; // Skip the current select element
+            selects[i].options[previousOption].disabled = false;
+          }
+        }
+        // Updating previous option with the current option
+        selectElement.setAttribute('data-previous', selectedOption);
+      }
+    </script>
+  </body>
+</html>
