@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Actual Budget Linking</title>
+    </head>
+    <body>
+        <h1>Account Linking</h1>
+        {% if linkedActualTellerAccounts %}
+            <p>The following Actual Accounts were linked</p>
+            <p>
+                {% for name in linkedActualTellerAccounts %}
+                    {{ name }} </br>
+                {% endfor %}
+            <p>
+            {% else %}
+                No Accounts were linked
+            </p>
+            {% endif %}
+        {% if unlinkedActualTellerAccounts %}
+            <p>The following Actual Accounts were NOT linked</p>
+            <p>
+                {% for name in unlinkedActualTellerAccounts %}
+                    {{ name }} </br>
+                {% endfor %}
+            </p>
+        {% endif %}
+        <a href="{{ url_for('continueImport') }}" class="btn">Continue to import page</a>
+    </body>
+</html>
