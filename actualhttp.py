@@ -1,0 +1,59 @@
+import urllib3
+import json
+import os
+from dotenv import load_dotenv
+from collections import defaultdict
+
+load_dotenv()
+class ActualHTTPClient:
+    
+    try:
+        BASE_URL = os.environ.get('ACTUAL_SERVER_API')
+        ACTUAL_BUDGET_SYNC_ID = os.environ.get('ACTUAL_BUDGET_SYNC_ID')
+        ACTUAL_API_KEY = os.environ.get('ACTUAL_API_KEY')
+    except Exception as e:
+        BASE_URL = ''
+        ACTUAL_BUDGET_SYNC_ID = ''
+        ACTUAL_API_KEY = ''
+    actualAccounts = defaultdict()
+
+    def __init__(self):
+        self.http = urllib3.PoolManager()
+
+    def list_accounts(self):
+        try:
+            resp = self._get(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts')
+            respJson = json.loads(resp.data)
+            for data, accounts in respJson.items():
+                for account in accounts:
+                    self.actualAccounts[account['name']] = account['id']
+        except Exception as e:
+            print("Actual Budget Connection Down")
+        
+
+        # print( json.loads(resp.data) ) 
+
+    def create_accounts(self, encoded_body):        
+        resp = self._post(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts', encoded_body)
+        # print (resp.data)
+
+    def import_transactions(self, account, encoded_body):
+        resp = self._post(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts/{account}/transactions/import', encoded_body)
+        print ( resp.data )
+
+    def _get(self, path):
+        return self.http.request('GET', self.BASE_URL + path, headers = {"x-api-key" : self.ACTUAL_API_KEY})
+
+    def _post(self, path, encoded_body):
+        return self.http.request('POST', self.BASE_URL + path, 
+            headers = { 
+                        "x-api-key" : self.ACTUAL_API_KEY, 
+                        'accept' : 'application/json', 
+                        'Content-Type' : 'application/json'
+                    }, 
+            body = encoded_body
+        )
+        
+# calls main()
+if __name__ == '__main__':
+    main()
