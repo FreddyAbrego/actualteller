@@ -55,7 +55,6 @@ class TellerClient:
 
     # function for getting the transactions for a given Acccount in a given Bank
     def list_account_transactions(self, account_id, bankToken):
-        
         resp = self._get(f'/accounts/{account_id}/transactions?count=1', bankToken)
         # self.http.request('GET', self.BASE_URL + "/accounts/" + accountid + "/transactions", headers=headers)
         respJson = json.loads(resp.data)    

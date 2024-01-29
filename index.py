@@ -49,8 +49,7 @@ def index():
         button_status = button_status,
         btn_stop_status = btn_stop_status)
 
-    else:
-       
+    else:       
         print("No Linked Accounts")
         # Render a template that contains a form
         tellerclient = TellerClient()
@@ -98,19 +97,26 @@ def submit():
         # Closes connection to the pickle
         f.close()
 
-        # Intantiates a dictionary to hold the result from the form
+        f = open("./data/links.pkl", "wb")
+        pickle.dump(tellerclient.banks,f)
+        pickle.dump(tellerclient.tellerAccounts,f)
+        pickle.dump(actualclient.actualAccounts,f)
+        f.close()
+
+        # Instantiates a dictionary to hold the result from the form
         actualTellerResults = defaultdict()         
         
         # Since the form only has actualAccounts that are displayed
         # This loop sets the actualTellerResult dictionary to what was selected in the form
-        for actualAccount in actualclient.actualAccounts.keys():                
+        for actualAccount in actualclient.actualAccounts.keys():               
+            print(request.form.get(f'account-select-{actualAccount}')) 
             actualTellerResults[actualAccount] = request.form.get(f'account-select-{actualAccount}')
 
         linkedActualTellerAccounts = defaultdict(list)
         unlinkedActualTellerAccounts = defaultdict(list)
 
         for account, id in actualclient.actualAccounts.items():
-            if actualTellerResults[account] != '--Select an Account to Link--':
+            if actualTellerResults[account] != '':
                 linkedActualTellerAccounts[account] = [id, actualTellerResults[account]]
             else:   
                 unlinkedActualTellerAccounts[account] = [id, ""]
@@ -137,6 +143,9 @@ def reset():
         f = open("./data/AccountMaps.pkl", "r+b")
         f.truncate(0)
         f.close()
+        f = open("./data/links.pkl", "r+b")
+        f.truncate(0)
+        f.close()
         print("Reseting links")
         return redirect('/')
     else:
@@ -154,9 +163,10 @@ def importTransactions():
 @app.route('/start_schedule', methods = ['POST'])
 def startSchedule():    
     try:
-        accountsToImport = ["test1", "test2"]
+
         # change from minute="*/5" to test every 5 minutes
-        scheduler.add_job(getTransactions, "cron", hour="*", args=[accountsToImport], id="BankImports")
+        # scheduler.add_job(getTransactions, "cron", hour="*", args=[accountsToImport], id="BankImports")
+        scheduler.add_job(getTransactions, "cron", second="*/5", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
     except Exception as e:
@@ -172,16 +182,59 @@ def stopSchedule():
     return redirect('/')
 
 i = 0
-def getTransactions(accounts):
-    global i
-    i+=1
-    print(f'I JUST RAN {i} TIME(S)!')
-    for account in accounts:
-        print(account)
-    
-    
+def getTransactions():
+    tellerclient = TellerClient()
+    actualclient = ActualHTTPClient()
+    # Opens the pickle file in read bytes
+    f = open("./data/AccountMaps.pkl", "rb")
+    linkedAccounts = pickle.load(f)
+    unlinkedAccounts = pickle.load(f)
+    f.close()
 
+    f = open("./data/AccountMaps.pkl", 'wb')    
+    pickle.dump(linkedAccounts, f)
+    pickle.dump(unlinkedAccounts,f)
+    f.close()
 
+    f = open("./data/links.pkl", "rb")
+    tellerclient.banks = pickle.load(f)
+    tellerclient.tellerAccounts = pickle.load(f)
+    actualclient.actualAccounts = pickle.load(f)
+    f.close()
+
+    f = open("./data/links.pkl", "wb")
+    pickle.dump(tellerclient.banks,f)
+    pickle.dump(tellerclient.tellerAccounts,f)
+    pickle.dump(actualclient.actualAccounts,f)
+    f.close()
+    for id, linkedAccount in linkedAccounts.items():
+        linkedToken = ""
+        for token, connection in tellerclient.banks.items():
+            if linkedAccount[1] in connection:
+                linkedToken = token
+                break
+        tellerclient.list_account_transactions(linkedAccount[1], linkedToken)
+    for account, tx in tellerclient.transactions.items():
+        print(tx)
+    # for bank, accounts in tellerclient.banks.items():
+    #         for account in accounts:
+    #             # tellerclient.list_account_transactions(account, bank)
+    #             print(account)
+    
+    # global i
+    # i+=1
+
+    # key_list = list(tellerclient.banks.keys())
+    # val_list = list(tellerclient.banks.values())
+    # print(f'Key list: { key_list }')
+    # print(f'Val list: { val_list }')
+    # print(f'I JUST RAN {i} TIME(S)!')
+    # for id, account in linkedAccounts.items():
+    #     if account[1] in tellerclient.banks.items()
+    #         print(key_list[val_list.index(account[1])])
+        # print(id, account)
+        # print(f'Account: {id}, Actual: {account[0]}, Teller: {account[1]}')
+    
 def is_pickle_not_empty(file_name):
     try:
         file_stat = os.stat(file_name)
