@@ -163,10 +163,9 @@ def importTransactions():
 @app.route('/start_schedule', methods = ['POST'])
 def startSchedule():    
     try:
-
         # change from minute="*/5" to test every 5 minutes
         # scheduler.add_job(getTransactions, "cron", hour="*", args=[accountsToImport], id="BankImports")
-        scheduler.add_job(getTransactions, "cron", second="*/5", id="BankImports")
+        scheduler.add_job(getTransactionsAndImport, "cron", second="*/15", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
     except Exception as e:
@@ -182,7 +181,7 @@ def stopSchedule():
     return redirect('/')
 
 i = 0
-def getTransactions():
+def getTransactionsAndImport():
     tellerclient = TellerClient()
     actualclient = ActualHTTPClient()
     # Opens the pickle file in read bytes
@@ -213,28 +212,80 @@ def getTransactions():
             if linkedAccount[1] in connection:
                 linkedToken = token
                 break
-        tellerclient.list_account_transactions(linkedAccount[1], linkedToken)
-    for account, tx in tellerclient.transactions.items():
-        print(tx)
-    # for bank, accounts in tellerclient.banks.items():
-    #         for account in accounts:
-    #             # tellerclient.list_account_transactions(account, bank)
-    #             print(account)
+        tellerclient.list_account_auto_transactions(linkedAccount[1], linkedToken)
     
-    # global i
-    # i+=1
+    # print("Linked Accounts:")
+    # print(linkedAccounts)
+    requestBody = ""
+    last_Account = list(tellerclient.transactions)[-1]
+    last_Transaction = tellerclient.transactions[last_Account][-1]
+    # print(f'LAST ACCOUNT: {last_Account}')
+    # print(f'LAST TRANSACTION: {last_Transaction}')
+    for account, transactions in tellerclient.transactions.items():
+        last_Transaction = list(transactions)[-1]
+        # print(f'LAST TRANSACTION: {last_Transaction}')
+        for tx in transactions:
+            actualAccount = ""
+            # print(f'Transaction for account: {account}: {tx}')
+            # print(tx)
+            for id, linkedAccount in linkedAccounts.items():
+                if linkedAccount[1] in tx["account_id"]:
+                    actualAccount = linkedAccount[0]
+                    break
+                    # print(f'Actual account: {linkedAccount[0]}')
+                    
+                    # requestBody += json.dumps(body) 
+                    # if tx["account_id"] != last_Transaction:
+                    #     requestBody += "," 
+            body = {
+                "account": actualAccount,
+                "amount": int(float(tx["amount"]) * 100),
+                "payee_name": tx["description"],
+                "date": tx["date"]
+            }            
+            requestBody += json.dumps(body)
+            
+            if last_Transaction != tx or last_Account != account:
+                # print("I made it here")
+                requestBody += ","
+    transactionToActual(requestBody, actualclient, linkedAccounts)
+    # for id, linkedAccount in linkedAccounts.items():
+    #     actualAccount = ""
+    #     for account, transactions in tellerclient.transactions.items():
+    #         if linkedAccount[1] in account:
+    #             print(f'Actual account: {linkedAccount[0]}')  
 
-    # key_list = list(tellerclient.banks.keys())
-    # val_list = list(tellerclient.banks.values())
-    # print(f'Key list: { key_list }')
-    # print(f'Val list: { val_list }')
-    # print(f'I JUST RAN {i} TIME(S)!')
-    # for id, account in linkedAccounts.items():
-    #     if account[1] in tellerclient.banks.items()
-    #         print(key_list[val_list.index(account[1])])
-        # print(id, account)
-        # print(f'Account: {id}, Actual: {account[0]}, Teller: {account[1]}')
+
+
+            
+            # # print(f'Teller account: {account}')      
+            # for tx in transactions:
+            #     print(tx)
+            #     if linkedAccount[1] in tx:
+            #         # print(f'Actual account: {linkedAccount[0]}')    
+            #         body = {
+            #             "account": linkedAccount[0],
+            #             "amount": int(float(tx["amount"]) * 100),
+            #             "payee_name": tx["description"],
+            #             "date": tx["date"]
+            #         }
+
+            #         requestBody += json.dumps(body)
+
+            #     if account != last_Account:
+            #         requestBody += "," 
+
+    # transactionToActual(requestBody)
+
+def transactionToActual(requestBody, client, linkedAccounts):
+    # print("Request for Actual:")
+    # print(requestBody)
+    for id, account in client.actualAccounts.items():
+        print(f'ID: {id} and Account: {account}')
+        print(f'ID: {id} and linkedAccount')
     
+
+
 def is_pickle_not_empty(file_name):
     try:
         file_stat = os.stat(file_name)

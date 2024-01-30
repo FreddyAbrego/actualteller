@@ -9,6 +9,7 @@ load_dotenv()
 class TellerClient:
     
     BASE_URL = "https://api.teller.io/"
+    TRANSACTION_COUNT = os.environ.get('TRANSACTION_COUNT')
 
     # python dict to hold lists
     banks = defaultdict(list)
@@ -53,9 +54,15 @@ class TellerClient:
         except Exception as e:
             print("Teller API Connection Down")
 
+    def list_account_auto_transactions(self, account_id, bankToken):
+        resp = self._get(f'/accounts/{account_id}/transactions', bankToken)
+        # self.http.request('GET', self.BASE_URL + "/accounts/" + accountid + "/transactions", headers=headers)
+        respJson = json.loads(resp.data)    
+        self.transactions[account_id] = respJson
+
     # function for getting the transactions for a given Acccount in a given Bank
-    def list_account_transactions(self, account_id, bankToken):
-        resp = self._get(f'/accounts/{account_id}/transactions?count=1', bankToken)
+    def list_account_auto_transactions(self, account_id, bankToken):
+        resp = self._get(f'/accounts/{account_id}/transactions?count={self.TRANSACTION_COUNT}', bankToken)
         # self.http.request('GET', self.BASE_URL + "/accounts/" + accountid + "/transactions", headers=headers)
         respJson = json.loads(resp.data)    
         self.transactions[account_id] = respJson
