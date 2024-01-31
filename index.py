@@ -257,6 +257,7 @@ def getTransactionsAndImport():
 def transactionToActual(requestBody, client, account): 
     # Adds the following to the request to fit what is expected in a request
     requestBody = '{"transactions":[' + requestBody + ']}'
+    "Import transaction to Actual"
     client.import_transactions(account,requestBody)
 
 # This checks if there is any data in the pickle file
