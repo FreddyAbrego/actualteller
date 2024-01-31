@@ -29,23 +29,21 @@ class ActualHTTPClient:
                     self.actualAccounts[account['name']] = account['id']
         except Exception as e:
             print("Actual Budget Connection Down")
-        
-
-        # print( json.loads(resp.data) ) 
 
     def create_accounts(self, encoded_body):        
         resp = self._post(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts', encoded_body)
-        # print (resp.data)
 
     def import_transactions(self, account, encoded_body):
         resp = self._post(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts/{account}/transactions/import', encoded_body)
-        print ( resp.data )
+        # print (f'Response Code: {resp.status}')
+        # print (resp.data)
 
     def _get(self, path):
         return self.http.request('GET', self.BASE_URL + path, headers = {"x-api-key" : self.ACTUAL_API_KEY})
 
     def _post(self, path, encoded_body):
-        return self.http.request('POST', self.BASE_URL + path, 
+        print("Now requesting...")
+        response = self.http.request('POST', self.BASE_URL + path, 
             headers = { 
                         "x-api-key" : self.ACTUAL_API_KEY, 
                         'accept' : 'application/json', 
@@ -53,6 +51,11 @@ class ActualHTTPClient:
                     }, 
             body = encoded_body
         )
+        while not response.isclosed():
+            print("Waiting for response to complete")
+        print("Complete!")
+        return response
+
         
 # calls main()
 if __name__ == '__main__':
