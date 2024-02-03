@@ -3,11 +3,15 @@ from flask import Flask, request, render_template, redirect
 from apscheduler.schedulers.background import BackgroundScheduler
 from teller import TellerClient
 from actualhttp import ActualHTTPClient
+import dotenv
 import itertools
 import os
 import json
 from collections import defaultdict
 import pickle
+
+dotenv_file = dotenv.find_dotenv()
+dotenv.load_dotenv(dotenv_file)
 
 # Create an instance of the Flask class
 app = Flask(__name__)
@@ -75,6 +79,26 @@ def index():
             tellerAccounts = tellerclient.tellerAccounts,
             TELLER_APPLICATION_ID = tellerclient.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = tellerclient.TELLER_ENVIRONMENT_TYPE)
+
+# Define a route for the form submission
+@app.route('/tellerconnect', methods=['GET', 'POST'])
+def tellerconnect():
+    tellertokens = request.form.getlist('tellertoken')
+    envTokens = os.environ["BANK_ACCOUNT_TOKENS"]
+    if (envTokens != ""):
+        envTokens += ","
+    print(f'Current Tokens: {envTokens}')
+    # //toAdd = ''
+    for tt in tellertokens:
+        envTokens += tt + ","
+    print(envTokens)
+    os.environ["BANK_ACCOUNT_TOKENS"] = envTokens[:-1]
+    print("Newly current tokens")
+    print(os.environ["BANK_ACCOUNT_TOKENS"])
+    dotenv.set_key(dotenv_file, "BANK_ACCOUNT_TOKENS", os.environ["BANK_ACCOUNT_TOKENS"])
+    return redirect('/')
+
+
 
 # Define a route for the form submission
 @app.route('/submit', methods=['GET', 'POST'])

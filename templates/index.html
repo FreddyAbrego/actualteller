@@ -24,13 +24,18 @@
             </ul>
             <p><input id="submit" type="submit" value="Submit"></p>
             {% else %}
-              <p>No Teller Accounts were found. Please check the .env file and set the Teller variables</p>
+              <p>No Teller Accounts were found. </br>Please check the .env file and set the Teller variables or Connect to your bank below</p>
             {% endif %}
         {% else %}
           <p>No Actual Budget Accounts were found. Please check the .env file and set the Actual Variables</p>
         {% endif %}    
       </form>
-      <button id="teller-connect">Connect to your bank</button>
+      <input type="submit" id="teller-connect" value="Connect to your bank">
+      <form action="/tellerconnect" id="tellerconnect"  method="post" style="display: none;">
+        <p>Bank accounts to Link</p>
+        <ul id="telleraccounts"></ul>
+        <input type="submit" value="Save to env file">
+      </form>
     <script>
       function onLoad() {
         var button = document.getElementById("submit");
@@ -95,7 +100,9 @@
     </script>
     <script src="https://cdn.teller.io/connect/connect.js"></script>
     <script>
-      console.log("{{ TELLER_ENVIRONMENT_TYPE }}")
+      var ul = document.getElementById("telleraccounts");
+      var form = document.getElementById("tellerconnect");
+      //console.log("{{ TELLER_ENVIRONMENT_TYPE }}");
       // Part 2. Initialize & configure the client library
       document.addEventListener("DOMContentLoaded", function() {
         var tellerConnect = TellerConnect.setup({
@@ -107,7 +114,20 @@
           },
           // Part 3. Handle a successful enrollment's accessToken
           onSuccess: function(enrollment) {
+            form.style.display = "block";
             console.log("User enrolled successfully", enrollment.accessToken);
+            console.log(enrollment)
+            console.log(enrollment.enrollment.institution.name)
+
+            
+            var li = document.createElement("li");
+            var input = document.createElement("input");
+            li.textContent = enrollment.enrollment.institution.name;
+            input.setAttribute("type","hidden")
+            input.setAttribute("value", enrollment.accessToken)
+            input.name = "tellertoken";
+            li.appendChild(input);
+            ul.appendChild(li);
           },
           onExit: function() {
             console.log("User closed Teller Connect");
