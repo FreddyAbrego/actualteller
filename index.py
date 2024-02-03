@@ -68,11 +68,13 @@ def index():
         pickle.dump(tellerclient.banks, f)
         pickle.dump(tellerclient.tellerAccounts,f)
         pickle.dump(actualclient.actualAccounts, f)
-        f.close()    
+        f.close()
         
         return render_template("index.html", 
             actualAccounts = actualclient.actualAccounts.keys(),
-            tellerAccounts = tellerclient.tellerAccounts)
+            tellerAccounts = tellerclient.tellerAccounts,
+            TELLER_APPLICATION_ID = tellerclient.TELLER_APPLICATION_ID,
+            TELLER_ENVIRONMENT_TYPE = tellerclient.TELLER_ENVIRONMENT_TYPE)
 
 # Define a route for the form submission
 @app.route('/submit', methods=['GET', 'POST'])

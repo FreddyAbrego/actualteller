@@ -9,6 +9,8 @@ load_dotenv()
 class TellerClient:
     
     BASE_URL = "https://api.teller.io/"
+    TELLER_APPLICATION_ID = os.environ.get('TELLER_APPLICATION_ID')
+    TELLER_ENVIRONMENT_TYPE = os.environ.get('TELLER_ENVIRONMENT_TYPE')
     TRANSACTION_COUNT = os.environ.get('TRANSACTION_COUNT')
 
     # python dict to hold lists
