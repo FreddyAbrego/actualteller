@@ -3,7 +3,6 @@ import json
 import os
 from collections import defaultdict
 from dotenv import load_dotenv
-import pickle
 
 # Searches for .env file 
 load_dotenv()
@@ -13,21 +12,6 @@ class TellerClient:
     TELLER_APPLICATION_ID = os.environ.get('TELLER_APPLICATION_ID')
     TELLER_ENVIRONMENT_TYPE = os.environ.get('TELLER_ENVIRONMENT_TYPE')
     TRANSACTION_COUNT = os.environ.get('TRANSACTION_COUNT')
-
-    def loadBankTokens(self):
-        # listEnvTokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
-        # f = open("./data/tellertokens.pkl", "rb")
-        # # listPklTokens = pickle.load(f)
-        # f.close()
-        # print(f'Length of listEnvTokens = {len(listEnvTokens)}')
-        # print(listEnvTokens)
-        # print('Bank tokens')
-        # print(self.bankTokens)
-        # print(f'length of listPklTokens = {len(listPklTokens)}')
-        # print(listPklTokens)
-        print("Bank Tokens")
-        print(self.bankTokens)
-        self.list_accounts()
 
     # python dict to hold lists
     banks = defaultdict(list)
