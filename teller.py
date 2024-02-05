@@ -3,6 +3,7 @@ import json
 import os
 from collections import defaultdict
 from dotenv import load_dotenv
+import pickle
 
 # Searches for .env file 
 load_dotenv()
@@ -13,13 +14,28 @@ class TellerClient:
     TELLER_ENVIRONMENT_TYPE = os.environ.get('TELLER_ENVIRONMENT_TYPE')
     TRANSACTION_COUNT = os.environ.get('TRANSACTION_COUNT')
 
+    def loadBankTokens(self):
+        # listEnvTokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
+        # f = open("./data/tellertokens.pkl", "rb")
+        # # listPklTokens = pickle.load(f)
+        # f.close()
+        # print(f'Length of listEnvTokens = {len(listEnvTokens)}')
+        # print(listEnvTokens)
+        # print('Bank tokens')
+        # print(self.bankTokens)
+        # print(f'length of listPklTokens = {len(listPklTokens)}')
+        # print(listPklTokens)
+        print("Bank Tokens")
+        print(self.bankTokens)
+        self.list_accounts()
+
     # python dict to hold lists
     banks = defaultdict(list)
     # splits the account tokens CHANGE TELLER_ACCOUNTS TO BANK TOKENS
-    try:
-        bankTokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
-    except Exception as e:
-        bankTokens = ['']
+    # try:
+    bankTokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
+    # except Exception as e:
+        # print e
     #  
     transactions = defaultdict(list)
     #
@@ -39,22 +55,24 @@ class TellerClient:
         )
 
     # function for getting the account ids
-    def list_accounts(self, bankToken):
-        try:
-            # resp is the response of a GET for accounts using the bankToken for the header
-            resp = self._get(f'/accounts', bankToken)
-            # uses json.loads to change format to json
-            respJson = json.loads(resp.data)
-            # empty list to add the Account IDs that are associated with certain bank
-            acctid = []
-            # loops for every account found in the linked bank
-            for account in respJson:
-                acctid .append(account['id'])
-                self.tellerAccounts[account['name'] + " " + account['last_four']] = account['id']
-            # adds the Account IDs to the current bank
-            self.banks[bankToken] = acctid
-        except Exception as e:
-            print("Teller API Connection Down")
+    def list_accounts(self):
+        for bankToken, accountid in self.banks.items():
+            print(bankToken)
+            try:
+                # resp is the response of a GET for accounts using the bankToken for the header
+                resp = self._get(f'/accounts', bankToken)
+                # uses json.loads to change format to json
+                respJson = json.loads(resp.data)
+                # empty list to add the Account IDs that are associated with certain bank
+                acctid = []
+                # loops for every account found in the linked bank
+                for account in respJson:
+                    acctid .append(account['id'])
+                    self.tellerAccounts[account['name'] + " " + account['last_four']] = account['id']
+                # adds the Account IDs to the current bank
+                self.banks[bankToken] = acctid
+            except Exception as e:
+                print("Teller API Connection Down")
 
     # CHANGE THIS TO NO AUTO AND THE FUNCTION BELOW TO AUTO_TRANSACTIONS
     def list_account_auto_transactions(self, account_id, bankToken):
@@ -74,5 +92,8 @@ class TellerClient:
     def _get(self, path, bankToken):
         return self.http.request('GET', self.BASE_URL + path, headers = urllib3.make_headers(basic_auth = bankToken + ":"))
 
-
+    def addToList(self,bankToken):
+            self.bankTokens.append(bankToken)
+            for b in self.bankTokens:      
+                self.banks[b] = ''
     

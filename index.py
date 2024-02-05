@@ -21,7 +21,25 @@ scheduler = BackgroundScheduler()
 # Define a route for the root URL
 @app.route("/", methods=['get','post'])
 def index():
+    tellerclient = TellerClient()
+    actualclient = ActualHTTPClient()
+    # tellerclient.list_accounts()
+    # If the pickle is empty run this
+    # if not is_pickle_not_empty("./data/tellertokens.pkl"):
+        # print("This may be a first run or a reset")
+    print(f'Bank tokens length {len(tellerclient.bankTokens)}')
+    print(tellerclient.bankTokens)
+    if tellerclient.bankTokens[0] == "":
+        print("This may be a first run or a reset")
+        return render_template("index.html",
+            TELLER_APPLICATION_ID = tellerclient.TELLER_APPLICATION_ID,
+            TELLER_ENVIRONMENT_TYPE = tellerclient.TELLER_ENVIRONMENT_TYPE)
+    # else:
+    #     print("Bank tokens found, will proceed getting Bank info")
+    #     tellerclient.loadBankTokens()
+
     if is_pickle_not_empty("./data/AccountMaps.pkl"):
+        print("Account mapping missing")
         job = scheduler.get_job("BankImports")
         print(job)
         if job:
@@ -37,11 +55,6 @@ def index():
         unlinkedAccounts = pickle.load(f)
         f.close()
 
-        # print("Linked Accounts")
-        # print(linkedAccounts)
-        # print("Unlinked Accounts")
-        # print(unlinkedAccounts)
-
         f = open("./data/AccountMaps.pkl", 'wb')    
         pickle.dump(linkedAccounts, f)
         pickle.dump(unlinkedAccounts,f)
@@ -54,13 +67,24 @@ def index():
         btn_stop_status = btn_stop_status)
 
     else:       
-        print("No Linked Accounts")
+        print("No Linked Accounts in File")
+        tellerclient.list_accounts()
+        print("Before pickle")
+        print(tellerclient.bankTokens)
         # Render a template that contains a form
-        tellerclient = TellerClient()
+        
+        # for bank, accountid in tellerclient.banks.items():
+        # tellerclient.list_accounts()
 
-        for bank, accountid in tellerclient.banks.items():
-            tellerclient.list_accounts(bank)
+        f = open("./data/links.pkl", "rb")
+        tellerclient.banks = pickle.load(f)
+        tellerclient.tellerAccounts = pickle.load(f)
+        actualclient.actualAccounts = pickle.load(f)
+        f.close()
 
+        tellerclient.list_accounts()
+        print("After pickle")
+        print(tellerclient.bankTokens)
         # for bank, accounts in tellerclient.banks.items():
         #     for account in accounts:
         #         tellerclient.list_account_transactions(account, bank)
@@ -83,19 +107,62 @@ def index():
 # Define a route for the form submission
 @app.route('/tellerconnect', methods=['GET', 'POST'])
 def tellerconnect():
+    tellerclient = TellerClient()
+    actualclient = ActualHTTPClient()
+    if tellerclient.bankTokens[0] == "":
+        tellerclient.bankTokens.pop(0)
+
+    try:
+        # Open Links pickle
+        f = open("./data/links.pkl", "rb")
+        tellerclient.banks = pickle.load(f)
+        tellerclient.tellerAccounts = pickle.load(f)
+        actualclient.actualAccounts = pickle.load(f)
+        f.close()
+    except Exception as e:
+        print("No current actual and/or teller accounts found")
+
+    # Get tokens from the webpage
     tellertokens = request.form.getlist('tellertoken')
+    print("HTML tellertokens")
+    print(tellertokens)
+    # Get tokens from the env file
     envTokens = os.environ["BANK_ACCOUNT_TOKENS"]
     if (envTokens != ""):
         envTokens += ","
-    print(f'Current Tokens: {envTokens}')
-    # //toAdd = ''
+    
+    # For each token submitted, add it to the list of bank tokens
+    # Useful during runtime, as adding to the env file doesn't work unless the program is restarted
     for tt in tellertokens:
         envTokens += tt + ","
-    print(envTokens)
+        tellerclient.addToList(tt)
+    # tellerclient.list_accounts()
+
+    # print(envTokens)
+
+    # This removes the last character from the envtokens above since it will always end with a ,
     os.environ["BANK_ACCOUNT_TOKENS"] = envTokens[:-1]
-    print("Newly current tokens")
-    print(os.environ["BANK_ACCOUNT_TOKENS"])
+    # print("Newly current tokens")
+    # print(os.environ["BANK_ACCOUNT_TOKENS"])
+
+    # Saves changes to the env file, however this will only take affect if app is restarted
     dotenv.set_key(dotenv_file, "BANK_ACCOUNT_TOKENS", os.environ["BANK_ACCOUNT_TOKENS"])
+
+
+    # Load to pickle
+    f = open("./data/links.pkl", "wb")
+    pickle.dump(tellerclient.banks,f)
+    pickle.dump(tellerclient.tellerAccounts,f)
+    pickle.dump(actualclient.actualAccounts,f)
+    f.close()
+
+    print("Tellerclient bank tokens")
+    print(tellerclient.bankTokens)
+    # Load to pickle
+    # f = open("./data/tellertokens.pkl", "wb")
+    # pickle.dump(tellerclient.bankTokens, f)
+    # f.close()
+    
     return redirect('/')
 
 
