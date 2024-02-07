@@ -23,20 +23,13 @@ scheduler = BackgroundScheduler()
 def index():
     tellerclient = TellerClient()
     actualclient = ActualHTTPClient()
-    # tellerclient.list_accounts()
-    # If the pickle is empty run this
-    # if not is_pickle_not_empty("./data/tellertokens.pkl"):
-        # print("This may be a first run or a reset")
-    # print(f'Bank tokens length {len(tellerclient.bankTokens)}')
-    # print(tellerclient.bankTokens)
+    tellerclient.list_accounts()
+    
     if tellerclient.bankTokens[0] == "":
         print("This may be a first run or a reset")
         return render_template("index.html",
             TELLER_APPLICATION_ID = tellerclient.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = tellerclient.TELLER_ENVIRONMENT_TYPE)
-    # else:
-    #     print("Bank tokens found, will proceed getting Bank info")
-    #     tellerclient.loadBankTokens()
 
     if is_pickle_not_empty("./data/AccountMaps.pkl"):
         print("Account mapping found")
@@ -64,7 +57,8 @@ def index():
         linkedAccounts=linkedAccounts.keys(),
         unlinkedAccounts=unlinkedAccounts.keys(),
         button_status = button_status,
-        btn_stop_status = btn_stop_status)
+        btn_stop_status = btn_stop_status,
+        TRANSACTION_COUNT=tellerclient.TRANSACTION_COUNT)
 
     else:       
         print("No Linked Accounts in File")
@@ -180,14 +174,72 @@ def continueImport():
 
 @app.route('/import', methods=['POST'])
 def importTransactions():
-    print("GOT HERE")
+    tellerclient = TellerClient()
+
+    f = open("./data/AccountMaps.pkl", "rb")
+    linkedAccounts = pickle.load(f)
+    unlinkedAccounts = pickle.load(f)
+    f.close()
+
+    f = open("./data/AccountMaps.pkl", 'wb')    
+    pickle.dump(linkedAccounts, f)
+    pickle.dump(unlinkedAccounts,f)
+    f.close()    
+
     data = request.get_json()
-    account = data["account"]
-    print(account)
-    # tellerclient = TellerClient()
-    # actualclient = ActualHTTPClient()
+    account = linkedAccounts[data["account"]]
+    linkedToken = getBankToken(account[1])
+    tellerclient.list_account_all_transactions(account[1], linkedToken)
     
+    actualRequest = tellerTxToActualTx(account)
+    if actualRequest == "No Transactions on this Account":
+        print(actualRequest)
+    else:
+        transactionToActual(actualRequest, account[0])
+
     return "Import complete"
+
+def tellerTxToActualTx(account):
+    tellerclient = TellerClient()
+    actualclient = ActualHTTPClient()
+
+    assert len(tellerclient.transactions) == 1
+    # print(tellerclient.transactions)
+    requestBody = ""
+    try:     
+        transactions = tellerclient.transactions[account[1]]
+        last_Transaction = list(transactions)[-1]   
+        # print(transactions)
+        for tx in transactions:
+            # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
+            amount = int(float(tx["amount"]) * 100)
+            # Json that will be sent to Actual
+            body = {
+                "account": account[0],
+                "amount": amount,
+                "payee_name": tx["description"],
+                "date": tx["date"]
+            }            
+            requestBody += json.dumps(body)
+            # If it's the last Transaction don't append with the ","
+            if last_Transaction != tx:
+                requestBody += ","
+        return(requestBody)
+        # # Calls the function to import the transaction
+        # transactionToActual(requestBody, actualclient, actualAccount)
+        # Resets the Request Body for next Account
+        requestBody = ""
+    except Exception as e:
+        return("No Transactions on this Account")
+
+def getBankToken(account):
+    tc = TellerClient()
+    token = ''
+    for bankToken, connection in tc.banks.items():       
+        if account in connection:
+            token = bankToken
+            break
+    return bankToken
 
 # This starts the Automatic Importing
 @app.route('/start_schedule', methods = ['POST'])
@@ -228,11 +280,7 @@ def getTransactionsAndImport():
 
     # This loops through all Linked Accounts and gets the transactions for auto imports
     for id, linkedAccount in linkedAccounts.items():
-        linkedToken = ""
-        for token, connection in tellerclient.banks.items():
-            if linkedAccount[1] in connection:
-                linkedToken = token
-                break           
+        linkedToken = getBankToken(linkedAccount)           
         tellerclient.list_account_auto_transactions(linkedAccount[1], linkedToken)
 
     # This holds what is going to be sent with POST request
@@ -272,10 +320,11 @@ def getTransactionsAndImport():
         except Exception as e:
             print("No Transactions on this Account")
   
-def transactionToActual(requestBody, client, account): 
+def transactionToActual(requestBody, account): 
+    client = ActualHTTPClient()
     # Adds the following to the request to fit what is expected in a request
     requestBody = '{"transactions":[' + requestBody + ']}'
-    "Import transaction to Actual"
+    # Import transaction to Actual
     client.import_transactions(account,requestBody)
 
 # This checks if there is any data in the pickle file

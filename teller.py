@@ -41,7 +41,6 @@ class TellerClient:
     # function for getting the account ids
     def list_accounts(self):
         for bankToken, accountid in self.banks.items():
-            print(bankToken)
             try:
                 # resp is the response of a GET for accounts using the bankToken for the header
                 resp = self._get(f'/accounts', bankToken)
@@ -58,6 +57,12 @@ class TellerClient:
             except Exception as e:
                 print("Teller API Connection Down")
 
+    def list_account_all_transactions(self, account_id, bankToken):
+        self.transactions.clear()
+        resp = self._get(f'/accounts/{account_id}/transactions', bankToken)
+        respJson = json.loads(resp.data) 
+        self.transactions[account_id] = respJson
+
     # CHANGE THIS TO NO AUTO AND THE FUNCTION BELOW TO AUTO_TRANSACTIONS
     def list_account_auto_transactions(self, account_id, bankToken):
         resp = self._get(f'/accounts/{account_id}/transactions', bankToken)
@@ -67,6 +72,7 @@ class TellerClient:
 
     # function for getting the transactions for a given Acccount in a given Bank
     def list_account_autos_transactions(self, account_id, bankToken):
+        self.transactions.clear()
         resp = self._get(f'/accounts/{account_id}/transactions?count={self.TRANSACTION_COUNT}', bankToken)
         # self.http.request('GET', self.BASE_URL + "/accounts/" + accountid + "/transactions", headers=headers)
         respJson = json.loads(resp.data) 

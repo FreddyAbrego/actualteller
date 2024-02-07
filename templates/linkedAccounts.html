@@ -8,7 +8,9 @@
         <h1>Import transactions into ActualBudget</h1>
             <h2>Linked Accounts</h2>
             {% if linkedAccounts %}
-                <p>Click Import to import transactions from the appropriate bank into Actual</p>
+                <p>Click Import to import all transactions for the account.</p>
+                <p>After importing transactions, you must refresh to import again.</p>
+                <p>Or you can schedule your import automatically below.</p>
                 <ul>
                     {% for account in linkedAccounts %}
                         <form>
@@ -38,7 +40,8 @@
                 <p><input type="submit" value="Reset Links" {{ button_status }}></p>
             </form>
             <form action="/start_schedule" method="post" onsubmit=""> 
-                <p>Schedule your import to run once a day by clicking below</p>
+                <p>Schedule your import to run once a day, for the last {{ TRANSACTION_COUNT }} transactions, by clicking below</p>
+                <h6>Note this amount of transactions is based on your TRANSACTION_COUNT env variable</h6>
                 <p><input id="start" type="submit" value="Schedule Automatic Import" {{ button_status }}></p>
             </form>
             <form action="/stop_schedule" method="post" onsubmit="" > 
