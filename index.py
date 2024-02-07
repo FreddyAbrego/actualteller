@@ -1,5 +1,5 @@
 # Import the Flask library
-from flask import Flask, request, render_template, redirect
+from flask import Flask, request, render_template, redirect, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from teller import TellerClient
 from actualhttp import ActualHTTPClient
@@ -27,8 +27,8 @@ def index():
     # If the pickle is empty run this
     # if not is_pickle_not_empty("./data/tellertokens.pkl"):
         # print("This may be a first run or a reset")
-    print(f'Bank tokens length {len(tellerclient.bankTokens)}')
-    print(tellerclient.bankTokens)
+    # print(f'Bank tokens length {len(tellerclient.bankTokens)}')
+    # print(tellerclient.bankTokens)
     if tellerclient.bankTokens[0] == "":
         print("This may be a first run or a reset")
         return render_template("index.html",
@@ -39,9 +39,9 @@ def index():
     #     tellerclient.loadBankTokens()
 
     if is_pickle_not_empty("./data/AccountMaps.pkl"):
-        print("Account mapping missing")
+        print("Account mapping found")
         job = scheduler.get_job("BankImports")
-        print(job)
+        # print(job)
         if job:
             button_status = "disabled"
             btn_stop_status = "enabled"
@@ -124,8 +124,6 @@ def tellerconnect():
     
     return redirect('/')
 
-
-
 # Define a route for the form submission
 @app.route('/submit', methods=['GET', 'POST'])
 def submit():
@@ -180,11 +178,16 @@ def reset():
 def continueImport():
     return redirect('/')
 
-# This import 
-@app.route('/import', methods=['GET','POST'])
+@app.route('/import', methods=['POST'])
 def importTransactions():
+    print("GOT HERE")
+    data = request.get_json()
+    account = data["account"]
+    print(account)
+    # tellerclient = TellerClient()
+    # actualclient = ActualHTTPClient()
     
-    return render_template("linkedAccounts.html")
+    return "Import complete"
 
 # This starts the Automatic Importing
 @app.route('/start_schedule', methods = ['POST'])
