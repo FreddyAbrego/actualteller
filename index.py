@@ -34,7 +34,7 @@ def index():
     if is_pickle_not_empty("./data/AccountMaps.pkl"):
         print("Account mapping found")
         job = scheduler.get_job("BankImports")
-        # print(job)
+        print(job)
         if job:
             button_status = "disabled"
             btn_stop_status = "enabled"
@@ -63,11 +63,6 @@ def index():
     else:       
         print("No Linked Accounts in File")
         tellerclient.list_accounts()
-        print("Before pickle")
-        print(tellerclient.bankTokens)
-
-        tellerclient.list_accounts()
-        print("After pickle")
         print(tellerclient.bankTokens)
 
         actualclient = ActualHTTPClient()
@@ -101,15 +96,9 @@ def tellerconnect():
     for tt in tellertokens:
         envTokens += tt + ","
         tellerclient.addToList(tt)
-    # tellerclient.list_accounts()
-
-    # print(envTokens)
 
     # This removes the last character from the envtokens above since it will always end with a ,
     os.environ["BANK_ACCOUNT_TOKENS"] = envTokens[:-1]
-    # print("Newly current tokens")
-    # print(os.environ["BANK_ACCOUNT_TOKENS"])
-
     # Saves changes to the env file, however this will only take affect if app is restarted
     dotenv.set_key(dotenv_file, "BANK_ACCOUNT_TOKENS", os.environ["BANK_ACCOUNT_TOKENS"])
 
@@ -185,12 +174,12 @@ def importTransactions():
     pickle.dump(linkedAccounts, f)
     pickle.dump(unlinkedAccounts,f)
     f.close()    
-
+    
     data = request.get_json()
     account = linkedAccounts[data["account"]]
     linkedToken = getBankToken(account[1])
-    tellerclient.list_account_all_transactions(account[1], linkedToken)
-    
+    tellerclient.list_account_autos_transactions(account[1], linkedToken)
+
     actualRequest = tellerTxToActualTx(account)
     if actualRequest == "No Transactions on this Account":
         print(actualRequest)
@@ -201,15 +190,11 @@ def importTransactions():
 
 def tellerTxToActualTx(account):
     tellerclient = TellerClient()
-    actualclient = ActualHTTPClient()
-
-    assert len(tellerclient.transactions) == 1
-    # print(tellerclient.transactions)
     requestBody = ""
     try:     
+        print(tellerclient.transactions)
         transactions = tellerclient.transactions[account[1]]
         last_Transaction = list(transactions)[-1]   
-        # print(transactions)
         for tx in transactions:
             # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
             amount = int(float(tx["amount"]) * 100)
@@ -225,10 +210,6 @@ def tellerTxToActualTx(account):
             if last_Transaction != tx:
                 requestBody += ","
         return(requestBody)
-        # # Calls the function to import the transaction
-        # transactionToActual(requestBody, actualclient, actualAccount)
-        # Resets the Request Body for next Account
-        requestBody = ""
     except Exception as e:
         return("No Transactions on this Account")
 
@@ -246,8 +227,8 @@ def getBankToken(account):
 def startSchedule():    
     try:
         # change from minute="*/5" to test every 5 minutes
-        # scheduler.add_job(getTransactions, "cron", hour="*", args=[accountsToImport], id="BankImports")
-        scheduler.add_job(getTransactionsAndImport, "cron", second="*/30", id="BankImports")
+        scheduler.add_job(getTransactionsAndImport, "cron", hour="0", id="BankImports")
+        # scheduler.add_job(getTransactionsAndImport, "cron", second="*/30", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
     except Exception as e:
@@ -266,7 +247,6 @@ def stopSchedule():
 # This is the function called to do the Get Requests from Teller and Post Request into ActualHTTPAPI
 def getTransactionsAndImport():
     tellerclient = TellerClient()
-    actualclient = ActualHTTPClient()
     ## This block loads what's in the pickle, and dumps it back into the pickle, just used to get current data
     f = open("./data/AccountMaps.pkl", "rb")
     linkedAccounts = pickle.load(f)
@@ -278,47 +258,18 @@ def getTransactionsAndImport():
     pickle.dump(unlinkedAccounts,f)
     f.close()
 
+    # Clears the current transactions
+    tellerclient.transactions.clear()
     # This loops through all Linked Accounts and gets the transactions for auto imports
+    print(linkedAccounts)
     for id, linkedAccount in linkedAccounts.items():
-        linkedToken = getBankToken(linkedAccount)           
+        linkedToken = getBankToken(linkedAccount[1])           
         tellerclient.list_account_auto_transactions(linkedAccount[1], linkedToken)
-
-    # This holds what is going to be sent with POST request
-    requestBody = ""
-    # This loops through all the transactions
-    for account, transactions in tellerclient.transactions.items():
-        # This checks if there are any transactions and does not push to Actual
-        try:
-            # This grabs the last transaction of the Account
-            last_Transaction = list(transactions)[-1]
-            # This will hold the Actual Account linked to the Teller Account
-            actualAccount = ""
-            # Loops through all transactions and adds to the Request Body that will be sent to Actual
-            for tx in transactions:
-                # This loops trough all Linked Accounts and grabs the Actual Account from the Teller Account
-                for id, linkedAccount in linkedAccounts.items():
-                    if linkedAccount[1] in tx["account_id"]:
-                        actualAccount = linkedAccount[0]
-                        break
-                # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
-                amount = int(float(tx["amount"]) * 100)
-                # Json that will be sent to Actual
-                body = {
-                    "account": actualAccount,
-                    "amount": amount,
-                    "payee_name": tx["description"],
-                    "date": tx["date"]
-                }            
-                requestBody += json.dumps(body)
-                # If it's the last Transaction don't append with the ","
-                if last_Transaction != tx:
-                    requestBody += ","
-            # Calls the function to import the transaction
-            transactionToActual(requestBody, actualclient, actualAccount)
-            # Resets the Request Body for next Account
-            requestBody = ""
-        except Exception as e:
-            print("No Transactions on this Account")
+        actualRequest = tellerTxToActualTx(linkedAccount)
+        if actualRequest == "No Transactions on this Account":
+            print(actualRequest)
+        else:
+            transactionToActual(actualRequest, linkedAccount[0])      
   
 def transactionToActual(requestBody, account): 
     client = ActualHTTPClient()

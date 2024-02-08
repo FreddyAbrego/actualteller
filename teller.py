@@ -63,18 +63,9 @@ class TellerClient:
         respJson = json.loads(resp.data) 
         self.transactions[account_id] = respJson
 
-    # CHANGE THIS TO NO AUTO AND THE FUNCTION BELOW TO AUTO_TRANSACTIONS
-    def list_account_auto_transactions(self, account_id, bankToken):
-        resp = self._get(f'/accounts/{account_id}/transactions', bankToken)
-        # self.http.request('GET', self.BASE_URL + "/accounts/" + accountid + "/transactions", headers=headers)
-        respJson = json.loads(resp.data)    
-        self.transactions[account_id] = respJson
-
     # function for getting the transactions for a given Acccount in a given Bank
-    def list_account_autos_transactions(self, account_id, bankToken):
-        self.transactions.clear()
+    def list_account_auto_transactions(self, account_id, bankToken):
         resp = self._get(f'/accounts/{account_id}/transactions?count={self.TRANSACTION_COUNT}', bankToken)
-        # self.http.request('GET', self.BASE_URL + "/accounts/" + accountid + "/transactions", headers=headers)
         respJson = json.loads(resp.data) 
         self.transactions[account_id] = respJson
 
