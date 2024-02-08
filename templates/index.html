@@ -6,16 +6,16 @@
   <body>
     <h1>Account Linking</h1>
       <form action="/submit" method="post" onsubmit="return disableButtons(this)">
-        {% if actualAccounts %}
-          {% if tellerAccounts %} 
+        {% if actual_accounts %}
+          {% if teller_accounts %} 
           <h2>Actual Budget Accounts</h2>            
             <ul>
-              {% for actualAccount in actualAccounts %}
-                <label for="account-select-{{ actualAccount }}">Link account: {{ actualAccount }}</label>
+              {% for actual_account in actual_accounts %}
+                <label for="account-select-{{ actual_account }}">Link account: {{ actual_account }}</label>
                   <li>
-                    <select onchange="checkSelects(this);" name="account-select-{{ actualAccount }}">
+                    <select onchange="checkSelects(this);" name="account-select-{{ actual_account }}">
                       <option selected value="">--Select an Account to Link--</option>
-                      {% for name, id in tellerAccounts.items() %}
+                      {% for name, id in teller_accounts.items() %}
                         <option value="{{ id }}">{{ name }}</option>
                       {% endfor %}
                     </select>                       
@@ -31,9 +31,9 @@
         {% endif %}    
       </form>
       <input type="submit" id="teller-connect" value="Connect to your bank">
-      <form action="/tellerconnect" id="tellerconnect"  method="post" style="display: none;">
+      <form action="/teller_connect" id="teller_connect"  method="post" style="display: none;">
         <p>Bank accounts to Link</p>
-        <ul id="telleraccounts"></ul>
+        <ul id="teller_accounts"></ul>
         <input type="submit" value="Save to env file">
       </form>
     <script>
@@ -100,9 +100,8 @@
     </script>
     <script src="https://cdn.teller.io/connect/connect.js"></script>
     <script>
-      var ul = document.getElementById("telleraccounts");
-      var form = document.getElementById("tellerconnect");
-      //console.log("{{ TELLER_ENVIRONMENT_TYPE }}");
+      var ul = document.getElementById("teller_accounts");
+      var form = document.getElementById("teller_connect");
       // Part 2. Initialize & configure the client library
       document.addEventListener("DOMContentLoaded", function() {
         var tellerConnect = TellerConnect.setup({

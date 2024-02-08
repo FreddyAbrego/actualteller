@@ -7,12 +7,12 @@
     <body>
         <h1>Import transactions into ActualBudget</h1>
             <h2>Linked Accounts</h2>
-            {% if linkedAccounts %}
+            {% if linked_accounts %}
                 <p>Click Import to import all transactions for the account.</p>
                 <p>After importing transactions, you must refresh to import again.</p>
                 <p>Or you can schedule your import automatically below.</p>
                 <ul>
-                    {% for account in linkedAccounts %}
+                    {% for account in linked_accounts %}
                         <form>
                             <li>{{ account }}: 
                                 <button onclick="submitImport(this,'{{account}}');" {{ button_status }}>
@@ -26,11 +26,11 @@
             {% else %}
                 <p>No accounts were linked. Please Click Reset Links below</p>
             {% endif %}
-            {% if unlinkedAccounts %}
+            {% if unlinked_accounts %}
                 <h2>Unlinked Accounts</h2>
                 
                     <ul>
-                        {% for account in unlinkedAccounts %}
+                        {% for account in unlinked_accounts %}
                             <li>{{ account }}:</li>
                         {% endfor %}
                     </ul>
