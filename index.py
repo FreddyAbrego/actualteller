@@ -177,7 +177,7 @@ def importTransactions():
     data = request.get_json()
     account = linkedAccounts[data["account"]]
     linkedToken = getBankToken(account[1])
-    tellerclient.list_account_autos_transactions(account[1], linkedToken)
+    tellerclient.list_account_all_transactions(account[1], linkedToken)
 
     actualRequest = tellerTxToActualTx(account)
     if actualRequest == "No Transactions on this Account":
@@ -196,7 +196,7 @@ def tellerTxToActualTx(account):
         last_Transaction = list(transactions)[-1]   
         for tx in transactions:
             # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
-            amount = int(float(tx["amount"]) * 100)
+            amount = int(float(tx["amount"]) * -100)
             # Json that will be sent to Actual
             body = {
                 "account": account[0],
