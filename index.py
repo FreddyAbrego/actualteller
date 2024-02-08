@@ -1,4 +1,3 @@
-# Import the Flask library
 from flask import Flask, request, render_template, redirect, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from teller import TellerClient
@@ -226,7 +225,7 @@ def getBankToken(account):
 @app.route('/start_schedule', methods = ['POST'])
 def startSchedule():    
     try:
-        # change from minute="*/5" to test every 5 minutes
+        # run everyday at midnight
         scheduler.add_job(getTransactionsAndImport, "cron", hour="0", id="BankImports")
         # scheduler.add_job(getTransactionsAndImport, "cron", second="*/30", id="BankImports")
         scheduler.start()
