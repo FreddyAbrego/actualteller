@@ -2,16 +2,24 @@
 <html>
     <head>
         <title>Actual Budget Linking</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     </head>
     <body>
         <h1>Import transactions into ActualBudget</h1>
             <h2>Linked Accounts</h2>
             {% if linkedAccounts %}
-                <p>Click Import to import transactions from the appropriate bank into Actual</p>
+                <p>Click Import to import all transactions for the account.</p>
+                <p>After importing transactions, you must refresh to import again.</p>
+                <p>Or you can schedule your import automatically below.</p>
                 <ul>
                     {% for account in linkedAccounts %}
-                        <form action="/import" method="post">
-                            <li>{{ account }}: <input type="submit" value="Import to ActualBudget" id="{{ account }}" onclick="disableImport(this)" {{ button_status }}></br></li>
+                        <form>
+                            <li>{{ account }}: 
+                                <button onclick="submitImport(this,'{{account}}');" {{ button_status }}>
+                                    Import to ActualBudget
+                                </button>
+                                <p id="response {{account}}"></p>
+                            </li>
                         </form>
                     {% endfor %}
                 </ul>
@@ -27,12 +35,13 @@
                         {% endfor %}
                     </ul>
             {% endif %}
-            <form action="/reset" method="get" onsubmit="disableButtons();"> 
+            <form action="/reset" method="get" onsubmit="return disableButtons();"> 
                 <p>If you would like to reset your links, click the following:</p>
                 <p><input type="submit" value="Reset Links" {{ button_status }}></p>
             </form>
             <form action="/start_schedule" method="post" onsubmit=""> 
-                <p>Schedule your import to run once a day by clicking below</p>
+                <p>Schedule your import to run once a day, for the last {{ TRANSACTION_COUNT }} transactions, by clicking below</p>
+                <h6>Note this amount of transactions is based on your TRANSACTION_COUNT env variable</h6>
                 <p><input id="start" type="submit" value="Schedule Automatic Import" {{ button_status }}></p>
             </form>
             <form action="/stop_schedule" method="post" onsubmit="" > 
@@ -40,12 +49,6 @@
                 <p><input id="stop" type="submit" value="Stop Automatic Imports" {{ btn_stop_status }}></p>
             </form>
             <script>
-                function disableImport(button)
-                {
-                    button.disabled = true;
-                    button.value = "Importing..."
-                }
-
                 function disableButtons()
                 {
                     let inputs = document.querySelectorAll("input[type='submit']");
@@ -54,6 +57,26 @@
                         inputs[i].disabled = true;
                         inputs[i].value = "Resetting..."
                     }
+                }
+
+                function submitImport(button,account) {
+                    data = {
+                        account: account
+                    }
+                    p = "response " + account                    
+                    button.disabled = true;
+                    button.textContent = "Importing...";
+                    fetch("/import", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById(p).innerHTML = data
+                    })
                 }
         </script>
     </body>
