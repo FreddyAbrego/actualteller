@@ -172,7 +172,7 @@ def importTransactions():
     f = open("./data/AccountMaps.pkl", 'wb')    
     pickle.dump(linkedAccounts, f)
     pickle.dump(unlinkedAccounts,f)
-    f.close()    
+    f.close()   
     
     data = request.get_json()
     account = linkedAccounts[data["account"]]
