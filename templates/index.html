@@ -11,15 +11,17 @@
           <h2>Actual Budget Accounts</h2>            
             <ul>
               {% for actual_account in actual_accounts %}
-                <label for="account-select-{{ actual_account }}">Link account: {{ actual_account }}</label>
+                <label for="account-select-{{ actual_account }}">Link account: {{ actual_account }}</label><br>
                   <li>
                     <select onchange="checkSelects(this);" name="account-select-{{ actual_account }}">
                       <option selected value="">--Select an Account to Link--</option>
                       {% for name, id in teller_accounts.items() %}
                         <option value="{{ id }}">{{ name }}</option>
                       {% endfor %}
-                    </select>                       
+                    </select>    
+                    <label for="{{ actual_account }}-is-negative"> &pm; Transaction</label><input type="checkbox" name="{{ actual_account }}-is-negative">                   
                   </li>
+                  
             {% endfor %}
             </ul>
             <p><input id="submit" type="submit" value="Submit"></p>
