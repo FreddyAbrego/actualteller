@@ -15,7 +15,7 @@ class ActualHTTPClient:
         BASE_URL = ''
         ACTUAL_BUDGET_SYNC_ID = ''
         ACTUAL_API_KEY = ''
-    actualAccounts = defaultdict()
+    actual_accounts = defaultdict()
 
     def __init__(self):
         self.http = urllib3.PoolManager()
@@ -26,7 +26,7 @@ class ActualHTTPClient:
             respJson = json.loads(resp.data)
             for data, accounts in respJson.items():
                 for account in accounts:
-                    self.actualAccounts[account['name']] = account['id']
+                    self.actual_accounts[account['name']] = account['id']
         except Exception as e:
             print("Actual Budget Connection Down")
 

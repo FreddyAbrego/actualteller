@@ -5,10 +5,10 @@
     </head>
     <body>
         <h1>Account Linking</h1>
-        {% if linkedActualTellerAccounts %}
+        {% if linked_actual_teller_accounts %}
             <p>The following Actual Accounts were linked</p>
             <p>
-                {% for name in linkedActualTellerAccounts %}
+                {% for name in linked_actual_teller_accounts %}
                     {{ name }} </br>
                 {% endfor %}
             <p>
@@ -16,14 +16,14 @@
                 No Accounts were linked
             </p>
             {% endif %}
-        {% if unlinkedActualTellerAccounts %}
+        {% if unlinked_actual_teller_accounts %}
             <p>The following Actual Accounts were NOT linked</p>
             <p>
-                {% for name in unlinkedActualTellerAccounts %}
+                {% for name in unlinked_actual_teller_accounts %}
                     {{ name }} </br>
                 {% endfor %}
             </p>
         {% endif %}
-        <a href="{{ url_for('continueImport') }}" class="btn">Continue to import page</a>
+        <a href="{{ url_for('continue_import') }}" class="btn">Continue to import page</a>
     </body>
 </html>
