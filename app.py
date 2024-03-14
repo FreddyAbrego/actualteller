@@ -56,15 +56,16 @@ def index():
         TRANSACTION_COUNT=teller_client.TRANSACTION_COUNT)
     else:       
         print("No Linked Accounts in File")
+        negative_rows = db.get_negative_rows()
         db.close()
         teller_client.list_accounts()
-
         actual_client = ActualHTTPClient()
         actual_client.list_accounts()
         
         return render_template("index.html", 
             actual_accounts = actual_client.actual_accounts.keys(),
             teller_accounts = teller_client.teller_accounts,
+            negative_rows = negative_rows,
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE)
 
@@ -124,17 +125,17 @@ def submit():
 
         linked_actual_teller_accounts = []
         unlinked_actual_teller_accounts = []
-        # items = db.view_items()
-        # print("All items:")
-        # for item in items:
-        #     if bool(item[5]):
-        #         print("IT'S MAPPED")
-        #         print(item)
-        #         linked_actual_teller_accounts.append(item[1])
-        #     else:
-        #         print("IT'S NOT MAPPED")
-        #         print(item)
-        #         unlinked_actual_teller_accounts.append(item[1])
+        items = db.view_items()
+        print("All items:")
+        for item in items:
+            if bool(item[5]):
+                # print("IT'S MAPPED")
+                # print(item)
+                linked_actual_teller_accounts.append(item[1])
+            else:
+                # print("IT'S NOT MAPPED")
+                # print(item)
+                unlinked_actual_teller_accounts.append(item[1])
 
         db.close()
 
@@ -167,13 +168,17 @@ def importTransactions():
     db = get_db()
 
     data = request.get_json()
-    actual_account, teller_account = db.get_accounts_by_name(data["account"])
+    actual_account, teller_account, isNeg = db.get_accounts_by_name(data["account"])
 
     db.close()
     
+    # print(f'actual_account: {actual_account}')
+    # print(f'teller_account: {teller_account}')
+    # print(f'isNegative: {isNeg}')
+
     linked_token = get_bank_token(teller_account)
     teller_client.list_account_all_transactions(teller_account, linked_token)
-    actual_request = teller_tx_to_actual_tx(actual_account, teller_account)
+    actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
     if actual_request == "No Transactions on this Account":
         print(actual_request)
     else:
@@ -181,16 +186,17 @@ def importTransactions():
 
     return "Import complete"    
 
-def teller_tx_to_actual_tx(actual_account, teller_account):
+def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
     teller_client = TellerClient()
     request_body = ""
+    print(isNeg)
     try:     
         print(teller_client.transactions)
         transactions = teller_client.transactions[teller_account]
         last_transaction = list(transactions)[-1]   
         for tx in transactions:
             # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
-            amount = int(float(tx["amount"]) * -100)
+            amount = int(float(tx["amount"]) * (100 if isNeg else -100))
             # Json that will be sent to Actual
             body = {
                 "account": actual_account,
@@ -250,31 +256,19 @@ def get_transactions_and_import():
         
         db.close()
 
-        for actual_account,teller_account  in linked_accounts:
+        
+        for actual_account,teller_account, isNeg  in linked_accounts:
+            # print(f'actual_account: {actual_account}')
+            # print(f'teller_account: {teller_account}')
+            # print(f'isNegative: {isNeg}')
             teller_client.transactions.clear()
             linked_token = get_bank_token(teller_account)       
             teller_client.list_account_auto_transactions(teller_account, linked_token)
-            actual_request = teller_tx_to_actual_tx(actual_account, teller_account)
+            actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
             if actual_request == "No Transactions on this Account":
                 print(actual_request)
             else:
-                transaction_to_actual(actual_request, actual_account)
-
-            # print(teller_account)
-            # print(actual_account)
-
-        # Clears the current transactions
-        # teller_client.transactions.clear()
-        # This loops through all Linked Accounts and gets the transactions for auto imports
-        
-        # for id, linkedAccount in linked_accounts.items():
-        #     linked_token = get_bank_token(teller_account)           
-        #     teller_client.list_account_auto_transactions(teller_account, linked_token)
-        #     actual_request = teller_tx_to_actual_tx(linkedAccount)
-        #     if actual_request == "No Transactions on this Account":
-        #         print(actual_request)
-        #     else:
-        #         transaction_to_actual(actual_request, actual_account)      
+                transaction_to_actual(actual_request, actual_account)      
   
 def transaction_to_actual(request_body, account): 
     client = ActualHTTPClient()
