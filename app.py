@@ -226,9 +226,9 @@ def get_bank_token(account):
 def start_schedule():    
     try:
         # run everyday at midnight
-        # scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
+        scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
         
-        scheduler.add_job(get_transactions_and_import, "cron", second="*/10", id="BankImports")
+        # scheduler.add_job(get_transactions_and_import, "cron", second="*/10", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
     except Exception as e:
