@@ -19,9 +19,8 @@
                         <option value="{{ id }}">{{ name }}</option>
                       {% endfor %}
                     </select>    
-                    <label for="{{ actual_account }}-is-negative"> &pm; Transaction</label><input type="checkbox" name="{{ actual_account }}-is-negative">                   
-                  </li>
-                  
+                    <label for="{{ actual_account }}-is-negative"> &pm; Transaction</label><input type="checkbox" name="{{ actual_account }}-is-negative" {% if actual_account in negative_rows %} checked {% endif %}>
+                  </li>                  
             {% endfor %}
             </ul>
             <p><input id="submit" type="submit" value="Submit"></p>

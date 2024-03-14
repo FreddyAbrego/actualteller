@@ -56,15 +56,20 @@ def index():
         TRANSACTION_COUNT=teller_client.TRANSACTION_COUNT)
     else:       
         print("No Linked Accounts in File")
+        negative_rows = db.get_negative_rows()
         db.close()
         teller_client.list_accounts()
-
         actual_client = ActualHTTPClient()
         actual_client.list_accounts()
+
+        print(negative_rows)
+        print(actual_client.actual_accounts.keys())
+
         
         return render_template("index.html", 
             actual_accounts = actual_client.actual_accounts.keys(),
             teller_accounts = teller_client.teller_accounts,
+            negative_rows = negative_rows,
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE)
 
@@ -124,17 +129,17 @@ def submit():
 
         linked_actual_teller_accounts = []
         unlinked_actual_teller_accounts = []
-        # items = db.view_items()
-        # print("All items:")
-        # for item in items:
-        #     if bool(item[5]):
-        #         print("IT'S MAPPED")
-        #         print(item)
-        #         linked_actual_teller_accounts.append(item[1])
-        #     else:
-        #         print("IT'S NOT MAPPED")
-        #         print(item)
-        #         unlinked_actual_teller_accounts.append(item[1])
+        items = db.view_items()
+        print("All items:")
+        for item in items:
+            if bool(item[5]):
+                # print("IT'S MAPPED")
+                # print(item)
+                linked_actual_teller_accounts.append(item[1])
+            else:
+                # print("IT'S NOT MAPPED")
+                # print(item)
+                unlinked_actual_teller_accounts.append(item[1])
 
         db.close()
 
