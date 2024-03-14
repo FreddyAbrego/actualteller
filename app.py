@@ -195,7 +195,6 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
         last_transaction = list(transactions)[-1]   
         for tx in transactions:
             # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
-            # amount = int(float(tx["amount"]) * -100)
             amount = int(float(tx["amount"]) * (100 if isNeg else -100))
             # Json that will be sent to Actual
             body = {
