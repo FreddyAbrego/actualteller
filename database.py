@@ -33,7 +33,7 @@ class Database():
         return rows
     
     def get_accounts_by_name(self,name):
-        self.cur.execute("SELECT actual_account, teller_account FROM actual_to_teller WHERE name = ?", (name,))
+        self.cur.execute("SELECT actual_account, teller_account, neg FROM actual_to_teller WHERE name = ?", (name,))
         accounts = self.cur.fetchall()
         return accounts[0]
 
@@ -48,7 +48,7 @@ class Database():
         return mapped_rows
     
     def get_all_linked_accounts(self):
-        self.cur.execute("SELECT actual_account, teller_account FROM actual_to_teller WHERE is_mapped = 1")
+        self.cur.execute("SELECT actual_account, teller_account, neg FROM actual_to_teller WHERE is_mapped = 1")
         accounts = self.cur.fetchall()
         return accounts
 

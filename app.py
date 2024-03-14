@@ -167,13 +167,17 @@ def importTransactions():
     db = get_db()
 
     data = request.get_json()
-    actual_account, teller_account = db.get_accounts_by_name(data["account"])
+    actual_account, teller_account, isNeg = db.get_accounts_by_name(data["account"])
 
     db.close()
     
+    # print(f'actual_account: {actual_account}')
+    # print(f'teller_account: {teller_account}')
+    # print(f'isNegative: {isNeg}')
+
     linked_token = get_bank_token(teller_account)
     teller_client.list_account_all_transactions(teller_account, linked_token)
-    actual_request = teller_tx_to_actual_tx(actual_account, teller_account)
+    actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
     if actual_request == "No Transactions on this Account":
         print(actual_request)
     else:
@@ -181,16 +185,18 @@ def importTransactions():
 
     return "Import complete"    
 
-def teller_tx_to_actual_tx(actual_account, teller_account):
+def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
     teller_client = TellerClient()
     request_body = ""
+    print(isNeg)
     try:     
         print(teller_client.transactions)
         transactions = teller_client.transactions[teller_account]
         last_transaction = list(transactions)[-1]   
         for tx in transactions:
             # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
-            amount = int(float(tx["amount"]) * -100)
+            # amount = int(float(tx["amount"]) * -100)
+            amount = int(float(tx["amount"]) * (100 if isNeg else -100))
             # Json that will be sent to Actual
             body = {
                 "account": actual_account,
@@ -220,9 +226,9 @@ def get_bank_token(account):
 def start_schedule():    
     try:
         # run everyday at midnight
-        scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
+        # scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
         
-        # scheduler.add_job(get_transactions_and_import, "cron", second="*/10", id="BankImports")
+        scheduler.add_job(get_transactions_and_import, "cron", second="*/10", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
     except Exception as e:
@@ -250,31 +256,19 @@ def get_transactions_and_import():
         
         db.close()
 
-        for actual_account,teller_account  in linked_accounts:
+        
+        for actual_account,teller_account, isNeg  in linked_accounts:
+            # print(f'actual_account: {actual_account}')
+            # print(f'teller_account: {teller_account}')
+            # print(f'isNegative: {isNeg}')
             teller_client.transactions.clear()
             linked_token = get_bank_token(teller_account)       
             teller_client.list_account_auto_transactions(teller_account, linked_token)
-            actual_request = teller_tx_to_actual_tx(actual_account, teller_account)
+            actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
             if actual_request == "No Transactions on this Account":
                 print(actual_request)
             else:
-                transaction_to_actual(actual_request, actual_account)
-
-            # print(teller_account)
-            # print(actual_account)
-
-        # Clears the current transactions
-        # teller_client.transactions.clear()
-        # This loops through all Linked Accounts and gets the transactions for auto imports
-        
-        # for id, linkedAccount in linked_accounts.items():
-        #     linked_token = get_bank_token(teller_account)           
-        #     teller_client.list_account_auto_transactions(teller_account, linked_token)
-        #     actual_request = teller_tx_to_actual_tx(linkedAccount)
-        #     if actual_request == "No Transactions on this Account":
-        #         print(actual_request)
-        #     else:
-        #         transaction_to_actual(actual_request, actual_account)      
+                transaction_to_actual(actual_request, actual_account)      
   
 def transaction_to_actual(request_body, account): 
     client = ActualHTTPClient()
