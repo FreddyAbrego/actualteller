@@ -61,10 +61,6 @@ def index():
         teller_client.list_accounts()
         actual_client = ActualHTTPClient()
         actual_client.list_accounts()
-
-        print(negative_rows)
-        print(actual_client.actual_accounts.keys())
-
         
         return render_template("index.html", 
             actual_accounts = actual_client.actual_accounts.keys(),
