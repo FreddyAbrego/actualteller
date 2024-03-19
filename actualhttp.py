@@ -42,7 +42,7 @@ class ActualHTTPClient:
         return self.http.request('GET', self.BASE_URL + path, headers = {"x-api-key" : self.ACTUAL_API_KEY})
 
     def _post(self, path, encoded_body):
-        print("Now requesting...")
+        # print("Now requesting...")
         response = self.http.request('POST', self.BASE_URL + path, 
             headers = { 
                         "x-api-key" : self.ACTUAL_API_KEY, 
@@ -53,7 +53,7 @@ class ActualHTTPClient:
         )
         while not response.isclosed():
             print("Waiting for response to complete")
-        print("Complete!")
+        # print("Complete!")
         return response
 
         

@@ -36,7 +36,7 @@ def index():
     if db.check_table_data():
         print("Account mapping found")
         job = scheduler.get_job("BankImports")
-        print(job)
+        # print(job)
         if job:
             button_status = "disabled"
             btn_stop_status = "enabled"
@@ -164,6 +164,7 @@ def continue_import():
 
 @app.route('/import', methods=['POST'])
 def importTransactions():
+    print("Importing in process...")
     teller_client = TellerClient()
     db = get_db()
 
@@ -179,22 +180,31 @@ def importTransactions():
     linked_token = get_bank_token(teller_account)
     teller_client.list_account_all_transactions(teller_account, linked_token)
     actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
-    if actual_request == "No Transactions on this Account":
-        print(actual_request)
-    else:
-        transaction_to_actual(actual_request, actual_account)
-
+    print("Import complete")
     return "Import complete"    
 
 def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
     teller_client = TellerClient()
-    request_body = ""
-    print(isNeg)
-    try:     
-        print(teller_client.transactions)
-        transactions = teller_client.transactions[teller_account]
-        last_transaction = list(transactions)[-1]   
-        for tx in transactions:
+    # request_body = ""
+    # print(isNeg)
+    # print(teller_client.transactions)
+    transactions = teller_client.transactions[teller_account]
+    transaction_batches = []
+    batch_size = 10
+    if (len(transactions) == 0):
+        print("No Transactions on this Account")
+        return
+
+    for i in range(0, len(transactions), batch_size):
+        batch = transactions[i:i+batch_size]
+        transaction_batches.append(batch)
+
+    print(f'Amount of batches: {transaction_batches}')
+
+    for batch in transaction_batches:
+        request_body = ""
+        last_transaction = batch[-1]
+        for tx in batch:      
             # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
             amount = int(float(tx["amount"]) * (100 if isNeg else -100))
             # Json that will be sent to Actual
@@ -208,9 +218,8 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
             # If it's the last Transaction don't append with the ","
             if last_transaction != tx:
                 request_body += ","
-        return(request_body)
-    except Exception as e:
-        return("No Transactions on this Account")
+        transaction_to_actual(request_body, actual_account)
+        # print('Import Complete')
 
 def get_bank_token(account):
     tc = TellerClient()
