@@ -53,7 +53,7 @@ class Database():
         return mapped_rows
     
     def get_all_linked_accounts(self):
-        self.cur.execute("SELECT actual_account, teller_account, is_neg FROM actual_to_teller WHERE is_mapped = 1")
+        self.cur.execute("SELECT name, actual_account, teller_account, is_neg FROM actual_to_teller WHERE is_mapped = 1")
         accounts = self.cur.fetchall()
         return accounts
 

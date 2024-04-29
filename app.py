@@ -36,7 +36,6 @@ def index():
     if db.check_table_data():
         print("Account mapping found")
         job = scheduler.get_job("BankImports")
-        # print(job)
         if job:
             button_status = "disabled"
             btn_stop_status = "enabled"
@@ -119,8 +118,6 @@ def submit():
             teller_account = request.form.get(f'account-select-{account}')
             neg = True if request.form.get(f'{account}-is-negative') else False
             is_mapped = False if teller_account == '' else True
-            # print(f'Statement will contain, {name}, {actual_account}, {teller_account}, {(int(neg))}, {(int(is_mapped))}')
-            # print(f'Datatype name: {type(name)}, actual_account: {type(actual_account)}, teller_account: {type(teller_account)}, neg: {type((int(neg)))}, is_mapped: {type((int(is_mapped)))}')
             db.insert_item(name, actual_account, teller_account, (int(neg)), (int(is_mapped)))
 
         linked_actual_teller_accounts = []
@@ -129,12 +126,8 @@ def submit():
         print("All items:")
         for item in items:
             if bool(item[5]):
-                # print("IT'S MAPPED")
-                # print(item)
                 linked_actual_teller_accounts.append(item[1])
             else:
-                # print("IT'S NOT MAPPED")
-                # print(item)
                 unlinked_actual_teller_accounts.append(item[1])
 
         db.close()
@@ -172,10 +165,6 @@ def importTransactions():
     actual_account, teller_account, isNeg = db.get_accounts_by_name(data["account"])
 
     db.close()
-    
-    # print(f'actual_account: {actual_account}')
-    # print(f'teller_account: {teller_account}')
-    # print(f'isNegative: {isNeg}')
 
     linked_token = get_bank_token(teller_account)
     teller_client.list_account_all_transactions(teller_account, linked_token)
@@ -185,9 +174,6 @@ def importTransactions():
 
 def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
     teller_client = TellerClient()
-    # request_body = ""
-    # print(isNeg)
-    # print(teller_client.transactions)
     transactions = teller_client.transactions[teller_account]
     transaction_batches = []
     batch_size = 10
@@ -198,8 +184,6 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
     for i in range(0, len(transactions), batch_size):
         batch = transactions[i:i+batch_size]
         transaction_batches.append(batch)
-
-    print(f'Amount of batches: {transaction_batches}')
 
     for batch in transaction_batches:
         request_body = ""
@@ -213,13 +197,12 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
                 "amount": amount,
                 "payee_name": tx["description"],
                 "date": tx["date"]
-            }            
+            }           
             request_body += json.dumps(body)
             # If it's the last Transaction don't append with the ","
             if last_transaction != tx:
                 request_body += ","
         transaction_to_actual(request_body, actual_account)
-        # print('Import Complete')
 
 def get_bank_token(account):
     tc = TellerClient()
@@ -237,7 +220,7 @@ def start_schedule():
         # run everyday at midnight
         scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
         
-        # scheduler.add_job(get_transactions_and_import, "cron", second="*/10", id="BankImports")
+        # scheduler.add_job(get_transactions_and_import, "cron", minute="*/1", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
     except Exception as e:
@@ -248,7 +231,8 @@ def start_schedule():
 @app.route('/stop_schedule', methods = ['POST'])
 def stop_schedule():
     try:
-        scheduler.remove_job("BankImports")      
+        scheduler.remove_job("BankImports")   
+        scheduler.shutdown()   
     except Exception as e:
         print(e)
     return redirect('/')
@@ -258,43 +242,28 @@ def get_transactions_and_import():
     with app.app_context():
         teller_client = TellerClient()
         db = get_db()
-
-        # data = request.get_json()
-        # actual_account, teller_account = db.get_accounts_by_name(data["account"])
         linked_accounts = db.get_all_linked_accounts()
-        
-        db.close()
-
-        
-        for actual_account,teller_account, isNeg  in linked_accounts:
-            # print(f'actual_account: {actual_account}')
-            # print(f'teller_account: {teller_account}')
-            # print(f'isNegative: {isNeg}')
+        db.close()        
+        for name, actual_account, teller_account, isNeg  in linked_accounts:
             teller_client.transactions.clear()
             linked_token = get_bank_token(teller_account)       
             teller_client.list_account_auto_transactions(teller_account, linked_token)
+            # print(f'Actual Account {actual_account} \n Teller Account {teller_account} \n Token {linked_token}')
+            print("Import beginning")
             actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
-            if actual_request == "No Transactions on this Account":
-                print(actual_request)
-            else:
-                transaction_to_actual(actual_request, actual_account)      
+            print(f'Import Complete for Account: {name}')     
+        print("Scheduled task is completed")
   
 def transaction_to_actual(request_body, account): 
     client = ActualHTTPClient()
     # Adds the following to the request to fit what is expected in a request
     request_body = '{"transactions":[' + request_body + ']}'
     # Import transaction to Actual
+    # print("Import in progress")
     client.import_transactions(account,request_body)
 
 def get_db():
     return Database(app.config['DATABASE'])
-
-# def close_db(db):
-#     db.close()
-    
-# @app.teardown_appcontext
-# def teardown_db(error=None):
-#     close_db()
 
 # calls main()
 if __name__ == '__main__':
