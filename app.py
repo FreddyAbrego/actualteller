@@ -31,7 +31,8 @@ def index():
         db.close()
         return render_template("index.html",
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
-            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE)
+            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
+            TELLER_ENV_SET = False)
 
     if db.check_table_data():
         print("Account mapping found")

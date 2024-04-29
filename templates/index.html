@@ -31,7 +31,11 @@
           <p>No Actual Budget Accounts were found. Please check the .env file and set the Actual Variables</p>
         {% endif %}    
       </form>
-      <input type="submit" id="teller-connect" value="Connect to your bank">
+      {% if not TELLER_ENV_SET %}
+        <p>Teller Section is not set in .env</p>
+      {% else %}
+        <input type="submit" id="teller-connect" value="Connect to your bank">
+      {% endif %}
       <form action="/teller_connect" id="teller_connect"  method="post" style="display: none;">
         <p>Bank accounts to Link</p>
         <ul id="teller_accounts"></ul>
