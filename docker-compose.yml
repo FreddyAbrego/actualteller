@@ -1,7 +1,7 @@
 version: '3.3'
 services:
   actualteller:
-    image: freddyabrego/actualteller:latest
+    #image: freddyabrego/actualteller:latest
     container_name: actualteller
     volumes:
       - './data:/data'
