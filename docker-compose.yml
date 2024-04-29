@@ -1,11 +1,11 @@
-version: 3.3
+version: '3.3'
 services:
   actualteller:
     image: freddyabrego/actualteller:latest
     build: https://git.local/freddyabrego/actualTeller
     container_name: actualteller
     volumes:
-      - ./data:/data
+      - './data:/data'
     ports:
-      - 5000:5000
-    restart: on-failure
+      - '5000:5000'
+    restart: 'on-failure'
