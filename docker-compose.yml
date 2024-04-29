@@ -9,3 +9,5 @@ services:
     ports:
       - '5000:5000'
     restart: 'on-failure'
+    environment:
+      BANK_ACCOUNT_TOKENS: ""
