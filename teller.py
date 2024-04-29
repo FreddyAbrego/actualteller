@@ -16,10 +16,11 @@ class TellerClient:
     # python dict to hold lists
     banks = defaultdict(list)
     # splits the account tokens CHANGE TELLER_ACCOUNTS TO BANK TOKENS
-    # try:
-    bank_tokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
-    # except Exception as e:
-        # print e
+    try:
+        bank_tokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
+    except Exception as e:
+        print("No Bank Tokens Present")
+        bank_tokens = ""
     #  
     transactions = defaultdict(list)
     #
