@@ -5,9 +5,9 @@ services:
     build: .
     container_name: actualteller
     volumes:
-      - './data:/data'
+      - '/data:/app/auth' # This would be where you store your Teller Certificate and Private Key files
     ports:
-      - '5000:5000'
+      - '5000:5000' # The app makes use of port 5000 internally change the left side if 5000 is already mapped for you
     restart: 'on-failure'
     environment:
       BANK_ACCOUNT_TOKENS: ""
