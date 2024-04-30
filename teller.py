@@ -16,16 +16,18 @@ class TellerClient:
     # python dict to hold lists
     banks = defaultdict(list)
     bank_tokens = []
-    # splits the account tokens CHANGE TELLER_ACCOUNTS TO BANK TOKENS
-    try:
+    if os.environ.get('BANK_ACCOUNT_TOKENS') != None:    
         bank_tokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
-    except Exception as e:
+    else:
         print("No Bank Tokens Present")
         bank_tokens.append("")
     #  
     transactions = defaultdict(list)
     #
     teller_accounts = defaultdict()
+
+    cert_found = True
+    key_found = True
 
     # uses a python dict to make a blank list for the current bank_token
     for bt in bank_tokens:      
@@ -34,11 +36,22 @@ class TellerClient:
     # default constructor
     def __init__(self):
         # certificate and private key to be used in GET requests
-        self.http = urllib3.PoolManager(
-            cert_file = os.environ.get('CERTIFICATE'),   
-            cert_reqs = "CERT_REQUIRED",
-            key_file = os.environ.get('KEY')   
-        )
+        
+        if os.environ.get('CERTIFICATE') == None:
+            print("Certificate file not found!")
+            self.cert_found = False
+        if os.environ.get('KEY') == None:
+            print("Key file not found!")
+            self.key_found = False
+        
+        if self.cert_found and self.key_found:
+            self.http = urllib3.PoolManager(
+                cert_file = os.environ.get('CERTIFICATE'),   
+                cert_reqs = "CERT_REQUIRED",
+                key_file = os.environ.get('KEY')   
+            )
+        else:
+            print("Please pass in your Teller Certificate and Keys")
 
     # function for getting the account ids
     def list_accounts(self):

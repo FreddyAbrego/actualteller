@@ -31,10 +31,18 @@
           <p>No Actual Budget Accounts were found. Please check the .env file and set the Actual Variables</p>
         {% endif %}    
       </form>
-      {% if not TELLER_ENV_SET %}
-        <p>Teller Section is not set in .env</p>
-      {% else %}
+      {% if TELLER_APPLICATION_ID != none and cert_found and key_found %}
         <input type="submit" id="teller-connect" value="Connect to your bank">
+      {% else %}
+        {% if TELLER_APPLICATION_ID == none %}
+          <p>Teller App ID is not set in .env</p>
+        {% endif %}
+        {% if not cert_found %}
+          <p>Teller Certificate not found</p>
+        {% endif %}
+        {% if not key_found %}
+          <p>Teller Private Key not found</p>
+        {% endif %}
       {% endif %}
       <form action="/teller_connect" id="teller_connect"  method="post" style="display: none;">
         <p>Bank accounts to Link</p>

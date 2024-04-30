@@ -29,10 +29,13 @@ def index():
     if teller_client.bank_tokens[0] == "":
         print("This may be a first run or a reset")
         db.close()
+        # print(teller_client.)
+        print(teller_client.cert_found)
         return render_template("index.html",
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
-            TELLER_ENV_SET = False)
+            cert_found = teller_client.cert_found,
+            key_found = teller_client.key_found)
 
     if db.check_table_data():
         print("Account mapping found")
