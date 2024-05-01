@@ -1,10 +1,10 @@
 import urllib3
 import json
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 from collections import defaultdict
 
-# load_dotenv()
+load_dotenv()
 class ActualHTTPClient:
     
     try:
