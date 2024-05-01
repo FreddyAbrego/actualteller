@@ -15,7 +15,7 @@ WORKDIR /app
 COPY . .
 
 # Create a data directory and set permissions
-RUN mkdir /app/data && chmod 777 /app/data
+RUN mkdir /data && chmod 777 /data
 
 # Install any needed dependencies specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
