@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     # Add any other necessary dependencies here \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a data directory and set permissions
+RUN mkdir /app && chmod 777 /app
+
 # Set the working directory in the container
 WORKDIR /app
 
