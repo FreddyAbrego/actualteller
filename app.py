@@ -63,9 +63,6 @@ def index():
         negative_rows = db.get_negative_rows()
         
         db.close()
-        # teller_client.list_accounts()
-        # print(teller_client.teller_accounts)
-        # actual_client = ActualHTTPClient()
         actual_client.list_accounts()
         
         return render_template("index.html", 
@@ -241,7 +238,6 @@ def get_transactions_and_import():
             teller_client.transactions.clear()
             linked_token = get_bank_token(teller_account)       
             teller_client.list_account_auto_transactions(teller_account, linked_token)
-            # print(f'Actual Account {actual_account} \n Teller Account {teller_account} \n Token {linked_token}')
             print("Import beginning")
             actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
             print(f'Import Complete for Account: {name}')     
@@ -252,7 +248,6 @@ def transaction_to_actual(request_body, account):
     # Adds the following to the request to fit what is expected in a request
     request_body = '{"transactions":[' + request_body + ']}'
     # Import transaction to Actual
-    # print("Import in progress")
     client.import_transactions(account,request_body)
 
 def get_db():
@@ -260,5 +255,5 @@ def get_db():
 
 # calls main()
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run(debug=True, port=8001, host='0.0.0.0')
+    app.run(debug=True)
+    # app.run(debug=True, port=8001, host='0.0.0.0')
