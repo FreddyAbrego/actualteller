@@ -11,12 +11,11 @@ services:
     restart: 'on-failure'
     environment:
       # Teller Account Info
-      BANK_ACCOUNT_TOKENS: ""
       CERTIFICATE: './auth/certificate.pem' # This can change wherever you have your certificate file
       KEY: './auth/private_key' # This can change wherever you have your key file
       TRANSACTION_COUNT: '20' # This is the amount of transactions it will pull on the daily pull
       TELLER_ENVIRONMENT_TYPE: 'sandbox' # This is needed to use real bank info
-      TELLER_APPLICATION_ID: 
+      TELLER_APPLICATION_ID: ''
       # Actual Buget Info
       ACTUAL_SERVER_URL: '' # ActualBudget Server URL
       ACTUAL_SERVER_PASSWORD: '' # password to access ActualBudget

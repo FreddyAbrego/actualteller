@@ -8,13 +8,14 @@ import os
 import json
 from collections import defaultdict
 from database import Database
+from config import DATABASE
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 
 # Create an instance of the Flask class
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('ACTUAL_TELLER_SECRET_KEY')
-app.config['DATABASE'] = './data/account_maps.db'
+app.config['DATABASE'] = DATABASE
 app.app_context().push()
 scheduler = BackgroundScheduler()
 
@@ -26,11 +27,9 @@ def index():
     teller_client.list_accounts()
     db = get_db()
 
-    if teller_client.bank_tokens[0] == "":
+    if len(teller_client.bank_tokens) == 0:
         print("This may be a first run or a reset")
         db.close()
-        # print(teller_client.)
-        print(teller_client.cert_found)
         return render_template("index.html",
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
@@ -56,13 +55,17 @@ def index():
         unlinked_accounts=unlinked_accounts,
         button_status = button_status,
         btn_stop_status = btn_stop_status,
-        TRANSACTION_COUNT=teller_client.TRANSACTION_COUNT)
+        TRANSACTION_COUNT=teller_client.TRANSACTION_COUNT,
+        cert_found = teller_client.cert_found,
+        key_found = teller_client.key_found)
     else:       
         print("No Linked Accounts in File")
         negative_rows = db.get_negative_rows()
+        
         db.close()
-        teller_client.list_accounts()
-        actual_client = ActualHTTPClient()
+        # teller_client.list_accounts()
+        # print(teller_client.teller_accounts)
+        # actual_client = ActualHTTPClient()
         actual_client.list_accounts()
         
         return render_template("index.html", 
@@ -70,39 +73,25 @@ def index():
             teller_accounts = teller_client.teller_accounts,
             negative_rows = negative_rows,
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
-            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE)
+            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
+            cert_found = teller_client.cert_found,
+            key_found = teller_client.key_found)
 
 # Define a route for the form submission
 @app.route('/teller_connect', methods=['GET', 'POST'])
 def teller_connect():
     teller_client = TellerClient()
     actual_client = ActualHTTPClient()
-    if teller_client.bank_tokens[0] == "":
-        teller_client.bank_tokens.pop(0)
 
+    bank = defaultdict()
     # Get tokens from the webpage
     teller_tokens = request.form.getlist('teller_token')
-    print("HTML teller_tokens")
-    print(teller_tokens)
-    # Get tokens from the env file
-    env_tokens = os.environ["BANK_ACCOUNT_TOKENS"]
-    if (env_tokens != ""):
-        env_tokens += ","
-    
-    # For each token submitted, add it to the list of bank tokens
-    # Useful during runtime, as adding to the env file doesn't work unless the program is restarted
+
+    db = get_db()
     for tt in teller_tokens:
-        env_tokens += tt + ","
-        teller_client.addToList(tt)
-
-    # This removes the last character from the envtokens above since it will always end with a ,
-    os.environ["BANK_ACCOUNT_TOKENS"] = env_tokens[:-1]
-    # Saves changes to the env file, however this will only take affect if app is restarted
-    dotenv.set_key(dotenv_file, "BANK_ACCOUNT_TOKENS", os.environ["BANK_ACCOUNT_TOKENS"])
-
-    print("teller_client bank tokens")
-    print(teller_client.bank_tokens)
-    
+        bank, token = tt.split(',')
+        db.insert_token(bank,token)
+    db.close()
     return redirect('/')
 
 # Define a route for the form submission
@@ -271,5 +260,5 @@ def get_db():
 
 # calls main()
 if __name__ == '__main__':
-    app.run(debug=True)
-    #app.run(debug=True, port=8001, host='0.0.0.0')
+    # app.run(debug=True)
+    app.run(debug=True, port=8001, host='0.0.0.0')

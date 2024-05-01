@@ -17,6 +17,14 @@ class Database():
                 is_mapped INTEGER
             );
             '''
+        )        
+        self.cur.execute(
+            '''CREATE TABLE IF NOT EXISTS bank_tokens (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                token TEXT
+            );            
+            '''
         )
         self.conn.commit()
     
@@ -31,9 +39,21 @@ class Database():
                 VALUES (NULL, ?, ?, ?, ?, ?)''',
                 (name, actual_account, teller_account, is_neg, is_mapped))
         self.conn.commit()
+
+    def insert_token(self, name, token):
+        self.cur.execute(
+            '''INSERT INTO bank_tokens
+            VALUES (NULL, ?, ?)''',
+            (name, token))
+        self.conn.commit()
     
     def view_items(self):
         self.cur.execute("SELECT * FROM actual_to_teller")
+        rows = self.cur.fetchall()
+        return rows
+
+    def view_tokens(self):
+        self.cur.execute("SELECT * FROM bank_tokens")
         rows = self.cur.fetchall()
         return rows
     
@@ -67,6 +87,7 @@ class Database():
     def get_negative_rows(self):
         self.cur.execute('SELECT name FROM actual_to_teller WHERE is_neg = 1')
         negative_rows = [row[0] for row in self.cur.fetchall()]
+        # print(f'negative rows: {negative_rows}')
         return negative_rows
 
     def reset(self):

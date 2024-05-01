@@ -3,6 +3,8 @@ import json
 import os
 from collections import defaultdict
 from dotenv import load_dotenv
+from database import Database
+from config import DATABASE
 
 # Searches for .env file 
 load_dotenv()
@@ -13,14 +15,10 @@ class TellerClient:
     TELLER_ENVIRONMENT_TYPE = os.environ.get('TELLER_ENVIRONMENT_TYPE')
     TRANSACTION_COUNT = os.environ.get('TRANSACTION_COUNT')
 
+    
     # python dict to hold lists
     banks = defaultdict(list)
     bank_tokens = []
-    if os.environ.get('BANK_ACCOUNT_TOKENS') != None:    
-        bank_tokens = os.environ.get('BANK_ACCOUNT_TOKENS').split(',')
-    else:
-        print("No Bank Tokens Present")
-        bank_tokens.append("")
     #  
     transactions = defaultdict(list)
     #
@@ -29,14 +27,22 @@ class TellerClient:
     cert_found = True
     key_found = True
 
-    # uses a python dict to make a blank list for the current bank_token
-    for bt in bank_tokens:      
-        banks[bt] = ''
-
     # default constructor
     def __init__(self):
         # certificate and private key to be used in GET requests
-        
+        db = Database(DATABASE)
+        # self.bank_tokens = db.view_tokens()
+        connections = db.view_tokens()
+        # print(connections)
+        for connection in connections:
+            self.bank_tokens.append(connection[2])
+            # print(connection[2])
+        db.close()
+
+        # uses a python dict to make a blank list for the current bank_token
+        for bt in self.bank_tokens:      
+            self.banks[bt] = ''
+
         if os.environ.get('CERTIFICATE') == None:
             print("Certificate file not found!")
             self.cert_found = False
@@ -91,5 +97,4 @@ class TellerClient:
     def addToList(self,bank_token):
             self.bank_tokens.append(bank_token)
             for b in self.bank_tokens:      
-                self.banks[b] = ''
-    
+                self.banks[b] = ''    
