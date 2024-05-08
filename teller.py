@@ -14,7 +14,6 @@ class TellerClient:
     TELLER_APPLICATION_ID = os.environ.get('TELLER_APPLICATION_ID')
     TELLER_ENVIRONMENT_TYPE = os.environ.get('TELLER_ENVIRONMENT_TYPE')
     TRANSACTION_COUNT = os.environ.get('TRANSACTION_COUNT')
-
     
     # python dict to hold lists
     banks = defaultdict(list)
@@ -27,22 +26,19 @@ class TellerClient:
     cert_found = True
     key_found = True
 
+    # certificate and private key to be used in GET requests
+    db = Database(DATABASE)
+    # self.bank_tokens = db.view_tokens()
+    connections = db.view_tokens()
+    for connection in connections:
+        bank_tokens.append(connection[2])
+    db.close()
+    for bt in bank_tokens:      
+        banks[bt] = ''
+
     # default constructor
     def __init__(self):
-        # certificate and private key to be used in GET requests
-        db = Database(DATABASE)
-        # self.bank_tokens = db.view_tokens()
-        connections = db.view_tokens()
-        # print(connections)
-        for connection in connections:
-            self.bank_tokens.append(connection[2])
-            # print(connection[2])
-        db.close()
-
         # uses a python dict to make a blank list for the current bank_token
-        for bt in self.bank_tokens:      
-            self.banks[bt] = ''
-
         if os.environ.get('CERTIFICATE') == None:
             print("Certificate file not found!")
             self.cert_found = False
