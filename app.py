@@ -22,6 +22,7 @@ scheduler = BackgroundScheduler()
 # Define a route for the root URL
 @app.route("/", methods=['get','post'])
 def index():
+    
     teller_client = TellerClient()
     actual_client = ActualHTTPClient()
     teller_client.list_accounts()
@@ -197,6 +198,7 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
 def get_bank_token(account):
     tc = TellerClient()
     token = ''
+    print(tc.bank_tokens)
     for bank_token, connection in tc.banks.items():       
         if account in connection:
             token = bank_token
@@ -208,9 +210,9 @@ def get_bank_token(account):
 def start_schedule():    
     try:
         # run everyday at midnight
-        scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
+        # scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
         
-        # scheduler.add_job(get_transactions_and_import, "cron", minute="*/1", id="BankImports")
+        scheduler.add_job(get_transactions_and_import, "cron", minute="*/5", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
     except Exception as e:
@@ -236,7 +238,7 @@ def get_transactions_and_import():
         db.close()        
         for name, actual_account, teller_account, isNeg  in linked_accounts:
             teller_client.transactions.clear()
-            linked_token = get_bank_token(teller_account)       
+            linked_token = get_bank_token(teller_account)
             teller_client.list_account_auto_transactions(teller_account, linked_token)
             print("Import beginning")
             actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
@@ -255,5 +257,7 @@ def get_db():
 
 # calls main()
 if __name__ == '__main__':
-    app.run(debug=True)
-    # app.run(debug=True, port=8001, host='0.0.0.0')
+    # app.run(debug=True)
+    app.run(debug=True, port=8001, host='0.0.0.0')
+
+    
