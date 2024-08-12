@@ -14,7 +14,6 @@ class TellerClient:
     TELLER_APPLICATION_ID = os.environ.get('TELLER_APPLICATION_ID')
     TELLER_ENVIRONMENT_TYPE = os.environ.get('TELLER_ENVIRONMENT_TYPE')
     TRANSACTION_COUNT = os.environ.get('TRANSACTION_COUNT')
-    
     # python dict to hold lists
     banks = defaultdict(list)
     bank_tokens = []
@@ -61,6 +60,7 @@ class TellerClient:
             try:
                 # resp is the response of a GET for accounts using the bank_token for the header
                 resp = self._get(f'/accounts', bank_token)
+
                 # uses json.loads to change format to json
                 resp_json = json.loads(resp.data)
                 # empty list to add the Account IDs that are associated with certain bank
@@ -76,15 +76,43 @@ class TellerClient:
 
     def list_account_all_transactions(self, account_id, bank_token):
         self.transactions.clear()
-        resp = self._get(f'/accounts/{account_id}/transactions', bank_token)
-        resp_json = json.loads(resp.data) 
-        self.transactions[account_id] = resp_json
+        try:
+            resp = self._get(f'/accounts/{account_id}/transactions', bank_token)
+            resp_json = json.loads(resp.data) 
+
+            if 'error' in resp_json:
+                error_message = resp_json['error'].get('message', '')
+                error_code = resp_json['error'].get('code', '')
+
+                if error_code == 'enrollment.disconnected.credentials_invalid':
+                    print("Credentials are invalid. Please reauthenticate.")
+                else:
+                    print(f"Error occurred: {error_message} (Code: {error_code})")
+
+            return
+            self.transactions[account_id] = resp_json
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     # function for getting the transactions for a given Acccount in a given Bank
     def list_account_auto_transactions(self, account_id, bank_token):
-        resp = self._get(f'/accounts/{account_id}/transactions?count={self.TRANSACTION_COUNT}', bank_token)
-        resp_json = json.loads(resp.data) 
-        self.transactions[account_id] = resp_json
+        try:
+            resp = self._get(f'/accounts/{account_id}/transactions?count={self.TRANSACTION_COUNT}', bank_token)
+            resp_json = json.loads(resp.data)
+
+            if 'error' in resp_json:
+                error_message = resp_json['error'].get('message', '')
+                error_code = resp_json['error'].get('code', '')
+
+                if error_code == 'enrollment.disconnected.credentials_invalid':
+                    print("Credentials are invalid. Please reauthenticate.")
+                else:
+                    print(f"Error occurred: {error_message} (Code: {error_code})")
+
+                return
+            self.transactions[account_id] = resp_json
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     # Generic for GET API that uses the BASE_URL and path, and creates the necessary auth headers using the bank_token passed
     def _get(self, path, bank_token):

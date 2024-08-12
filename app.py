@@ -198,7 +198,7 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
 def get_bank_token(account):
     tc = TellerClient()
     token = ''
-    print(tc.bank_tokens)
+    # print(tc.bank_tokens)
     for bank_token, connection in tc.banks.items():       
         if account in connection:
             token = bank_token
@@ -240,9 +240,9 @@ def get_transactions_and_import():
             teller_client.transactions.clear()
             linked_token = get_bank_token(teller_account)
             teller_client.list_account_auto_transactions(teller_account, linked_token)
-            print("Import beginning")
+            print(f'Import beginning for Account: {name}')
             actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
-            print(f'Import Complete for Account: {name}')     
+            print('Import Complete')
         print("Scheduled task is completed")
   
 def transaction_to_actual(request_body, account): 
