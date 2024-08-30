@@ -31,11 +31,23 @@
           <p>No Actual Budget Accounts were found. Please check the .env file and set the Actual Variables</p>
         {% endif %}    
       </form>
-      <input type="submit" id="teller-connect" value="Connect to your bank">
+      {% if TELLER_APPLICATION_ID != none and cert_found and key_found %}
+        <input type="submit" id="teller-connect" value="Connect to your bank">
+      {% else %}
+        {% if TELLER_APPLICATION_ID == none %}
+          <p>Teller App ID is not set in .env</p>
+        {% endif %}
+        {% if not cert_found %}
+          <p>Teller Certificate not found</p>
+        {% endif %}
+        {% if not key_found %}
+          <p>Teller Private Key not found</p>
+        {% endif %}
+      {% endif %}
       <form action="/teller_connect" id="teller_connect"  method="post" style="display: none;">
         <p>Bank accounts to Link</p>
         <ul id="teller_accounts"></ul>
-        <input type="submit" value="Save to env file">
+        <input type="submit" id="save-to-database" value="Save to database">
       </form>
     <script>
       function onLoad() {
@@ -115,19 +127,20 @@
           // Part 3. Handle a successful enrollment's accessToken
           onSuccess: function(enrollment) {
             form.style.display = "block";
-            console.log("User enrolled successfully", enrollment.accessToken);
-            console.log(enrollment)
-            console.log(enrollment.enrollment.institution.name)
-
+            //console.log("User enrolled successfully", enrollment.accessToken);
+            //console.log(enrollment)
+            //console.logconsole.log(enrollment.enrollment.institution.name)
             
             var li = document.createElement("li");
             var input = document.createElement("input");
             li.textContent = enrollment.enrollment.institution.name;
             input.setAttribute("type","hidden")
-            input.setAttribute("value", enrollment.accessToken)
+            input.setAttribute("value", `${enrollment.enrollment.institution.name},${enrollment.accessToken}`)
             input.name = "teller_token";
             li.appendChild(input);
             ul.appendChild(li);
+            var button = document.getElementById("save-to-database")
+            button.click()
           },
           onExit: function() {
             console.log("User closed Teller Connect");

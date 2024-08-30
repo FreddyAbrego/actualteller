@@ -35,8 +35,6 @@ class ActualHTTPClient:
 
     def import_transactions(self, account, encoded_body):
         resp = self._post(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts/{account}/transactions/import', encoded_body)
-        # print (f'Response Code: {resp.status}')
-        # print (resp.data)
 
     def _get(self, path):
         return self.http.request('GET', self.BASE_URL + path, headers = {"x-api-key" : self.ACTUAL_API_KEY})

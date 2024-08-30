@@ -8,30 +8,34 @@ import os
 import json
 from collections import defaultdict
 from database import Database
+from config import DATABASE
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 
 # Create an instance of the Flask class
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('ACTUAL_TELLER_SECRET_KEY')
-app.config['DATABASE'] = './data/account_maps.db'
+app.config['DATABASE'] = DATABASE
 app.app_context().push()
 scheduler = BackgroundScheduler()
 
 # Define a route for the root URL
 @app.route("/", methods=['get','post'])
 def index():
+    
     teller_client = TellerClient()
     actual_client = ActualHTTPClient()
     teller_client.list_accounts()
     db = get_db()
 
-    if teller_client.bank_tokens[0] == "":
+    if len(teller_client.bank_tokens) == 0:
         print("This may be a first run or a reset")
         db.close()
         return render_template("index.html",
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
-            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE)
+            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
+            cert_found = teller_client.cert_found,
+            key_found = teller_client.key_found)
 
     if db.check_table_data():
         print("Account mapping found")
@@ -52,13 +56,14 @@ def index():
         unlinked_accounts=unlinked_accounts,
         button_status = button_status,
         btn_stop_status = btn_stop_status,
-        TRANSACTION_COUNT=teller_client.TRANSACTION_COUNT)
+        TRANSACTION_COUNT=teller_client.TRANSACTION_COUNT,
+        cert_found = teller_client.cert_found,
+        key_found = teller_client.key_found)
     else:       
         print("No Linked Accounts in File")
         negative_rows = db.get_negative_rows()
+        
         db.close()
-        teller_client.list_accounts()
-        actual_client = ActualHTTPClient()
         actual_client.list_accounts()
         
         return render_template("index.html", 
@@ -66,39 +71,25 @@ def index():
             teller_accounts = teller_client.teller_accounts,
             negative_rows = negative_rows,
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
-            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE)
+            TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
+            cert_found = teller_client.cert_found,
+            key_found = teller_client.key_found)
 
 # Define a route for the form submission
 @app.route('/teller_connect', methods=['GET', 'POST'])
 def teller_connect():
     teller_client = TellerClient()
     actual_client = ActualHTTPClient()
-    if teller_client.bank_tokens[0] == "":
-        teller_client.bank_tokens.pop(0)
 
+    bank = defaultdict()
     # Get tokens from the webpage
     teller_tokens = request.form.getlist('teller_token')
-    print("HTML teller_tokens")
-    print(teller_tokens)
-    # Get tokens from the env file
-    env_tokens = os.environ["BANK_ACCOUNT_TOKENS"]
-    if (env_tokens != ""):
-        env_tokens += ","
-    
-    # For each token submitted, add it to the list of bank tokens
-    # Useful during runtime, as adding to the env file doesn't work unless the program is restarted
+
+    db = get_db()
     for tt in teller_tokens:
-        env_tokens += tt + ","
-        teller_client.addToList(tt)
-
-    # This removes the last character from the envtokens above since it will always end with a ,
-    os.environ["BANK_ACCOUNT_TOKENS"] = env_tokens[:-1]
-    # Saves changes to the env file, however this will only take affect if app is restarted
-    dotenv.set_key(dotenv_file, "BANK_ACCOUNT_TOKENS", os.environ["BANK_ACCOUNT_TOKENS"])
-
-    print("teller_client bank tokens")
-    print(teller_client.bank_tokens)
-    
+        bank, token = tt.split(',')
+        db.insert_token(bank,token)
+    db.close()
     return redirect('/')
 
 # Define a route for the form submission
@@ -207,6 +198,7 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
 def get_bank_token(account):
     tc = TellerClient()
     token = ''
+    # print(tc.bank_tokens)
     for bank_token, connection in tc.banks.items():       
         if account in connection:
             token = bank_token
@@ -218,11 +210,13 @@ def get_bank_token(account):
 def start_schedule():    
     try:
         # run everyday at midnight
-        scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
-        
-        # scheduler.add_job(get_transactions_and_import, "cron", minute="*/1", id="BankImports")
+        scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")        
+        # scheduler.add_job(get_transactions_and_import, "cron", minute="*/5", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
+        job = scheduler.get_job("BankImports")
+        # Prints the next run for imports in a YYYY-MM-DD HH:MM:SS format
+        print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
         print(e)
     return redirect('/')
@@ -246,20 +240,21 @@ def get_transactions_and_import():
         db.close()        
         for name, actual_account, teller_account, isNeg  in linked_accounts:
             teller_client.transactions.clear()
-            linked_token = get_bank_token(teller_account)       
+            linked_token = get_bank_token(teller_account)
             teller_client.list_account_auto_transactions(teller_account, linked_token)
-            # print(f'Actual Account {actual_account} \n Teller Account {teller_account} \n Token {linked_token}')
-            print("Import beginning")
+            print(f'Import beginning for Account: {name}')
             actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
-            print(f'Import Complete for Account: {name}')     
+            print('Import Complete')
         print("Scheduled task is completed")
+    # Prints the next run for imports in a YYYY-MM-DD HH:MM:SS format
+    job = scheduler.get_job("BankImports")
+    print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
   
 def transaction_to_actual(request_body, account): 
     client = ActualHTTPClient()
     # Adds the following to the request to fit what is expected in a request
     request_body = '{"transactions":[' + request_body + ']}'
     # Import transaction to Actual
-    # print("Import in progress")
     client.import_transactions(account,request_body)
 
 def get_db():
@@ -267,5 +262,7 @@ def get_db():
 
 # calls main()
 if __name__ == '__main__':
-    app.run(debug=True)
-    #app.run(debug=True, port=8001, host='0.0.0.0')
+    # app.run(debug=True)
+    app.run(debug=True, port=8001, host='0.0.0.0')
+
+    
