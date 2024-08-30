@@ -4,27 +4,26 @@ services:
     image: freddyabrego/actualteller:latest
     container_name: actualteller
     volumes:
-      - '/data:/app/auth' # This would be where you store your Teller Certificate and Private Key files
-      - '/data/db:/app/data' # This is where the database would be stored, keep in a persistent location
+      - '/data:/app/auth'                   # This would be where you store your Teller Certificate and Private Key files
+      - '/data/db:/app/data'                # This is where the database would be stored, keep in a persistent location
     ports:
-      - '5000:5000' # The app makes use of port 5000 internally change the left side if 5000 is already mapped for you
+      - '5000:5000'                         # The app makes use of port 5000 internally change the left side if 5000 is already mapped for you
     restart: 'on-failure'
     environment:
-      TZ: America/New_York
+      TZ: America/New_York # Set to your timezone
+
       # Teller Account Info
       CERTIFICATE: './auth/certificate.pem' # This can change wherever you have your certificate file
-      KEY: './auth/private_key.pem' # This can change wherever you have your key file
-      TRANSACTION_COUNT: '20' # This is the amount of transactions it will pull on the daily pull
-      TELLER_ENVIRONMENT_TYPE: 'sandbox' # development use real bank info | sandbox to use fake bank info: username:password to connect 'bank'
-      TELLER_APPLICATION_ID: ''
+      KEY: './auth/private_key.pem'         # This can change wherever you have your private_key file 
+      TRANSACTION_COUNT: '20'               # This is the amount of transactions it will pull on the daily pull
+      TELLER_ENVIRONMENT_TYPE: 'sandbox'    # 'development' use real bank info | 'sandbox' to use fake bank info: username:password to connect any bank
+      TELLER_APPLICATION_ID: ''             # Your Teller application id found at https://teller.io/settings/application
+
       # Actual Buget Info
-      ACTUAL_SERVER_URL: '' # ActualBudget Server URL
-      ACTUAL_SERVER_PASSWORD: '' # password to access ActualBudget
-      ACTUAL_BUDGET_SYNC_ID: '' # Sync ID found in More -> Settings -> Advanced Settings -> Sync ID:
+      ACTUAL_SERVER_URL: ''                 # ActualBudget Server URL ex) http://IP:PORT/
+      ACTUAL_SERVER_PASSWORD: ''            # password to access ActualBudget
+      ACTUAL_BUDGET_SYNC_ID: ''             # Sync ID found in More -> Settings -> Advanced Settings -> Sync ID:
 
       # ActualHTTPAPI info
-      ACTUAL_SERVER_API: ''
-      ACTUAL_API_KEY: '' # Any string works, this is what the API will use to access the API
-
-      # ActualTeller Info
-      ACTUAL_TELLER_SECRET_KEY: ''
+      ACTUAL_SERVER_API: ''                 # URL for ActualHTTPAPI ex) http://IP:PORT/v1
+      ACTUAL_API_KEY: ''                    # API Key set for ActualHTTPAPI
