@@ -4,9 +4,6 @@ FROM python:3-alpine
 # Set the working directory in the container
 WORKDIR /app
 
-# Create a data directory and set permissions
-RUN mkdir -p /app/data && chmod 777 /app/data
-
 # Copy the current directory contents into the container at /app
 COPY . .
 
