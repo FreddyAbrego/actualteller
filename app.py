@@ -210,11 +210,13 @@ def get_bank_token(account):
 def start_schedule():    
     try:
         # run everyday at midnight
-        # scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")
-        
-        scheduler.add_job(get_transactions_and_import, "cron", minute="*/5", id="BankImports")
+        scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")        
+        # scheduler.add_job(get_transactions_and_import, "cron", minute="*/5", id="BankImports")
         scheduler.start()
         print("Scheduler is now running")
+        job = scheduler.get_job("BankImports")
+        # Prints the next run for imports in a YYYY-MM-DD HH:MM:SS format
+        print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
         print(e)
     return redirect('/')
@@ -244,6 +246,9 @@ def get_transactions_and_import():
             actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
             print('Import Complete')
         print("Scheduled task is completed")
+    # Prints the next run for imports in a YYYY-MM-DD HH:MM:SS format
+    job = scheduler.get_job("BankImports")
+    print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
   
 def transaction_to_actual(request_body, account): 
     client = ActualHTTPClient()

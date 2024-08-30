@@ -1,7 +1,6 @@
 venv/
 __pycache__/
-
-*.pkl
 *.pem
 *.env
 *.db
+*.dockerignore
