@@ -1,4 +1,6 @@
 from flask import Flask, request, render_template, redirect, current_app
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 from apscheduler.schedulers.background import BackgroundScheduler
 from teller import TellerClient
 from actualhttp import ActualHTTPClient
@@ -14,15 +16,22 @@ dotenv.load_dotenv(dotenv_file)
 
 # Create an instance of the Flask class
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('ACTUAL_TELLER_SECRET_KEY')
+auth = HTTPBasicAuth()
+app.config['USERNAME'] = os.environ.get('ACTUALTELLER_USERNAME')
+app.config['PASSWORD'] = generate_password_hash(os.environ.get('ACTUALTELLER_PASSWORD'))
 app.config['DATABASE'] = DATABASE
 app.app_context().push()
 scheduler = BackgroundScheduler()
 
+@auth.verify_password
+def verify_password(username, password):
+    if username == app.config['USERNAME'] and check_password_hash(app.config['PASSWORD'], password):
+        return True
+    return False
+
 # Define a route for the root URL
 @app.route("/", methods=['get','post'])
 def index():
-    
     teller_client = TellerClient()
     actual_client = ActualHTTPClient()
     teller_client.list_accounts()

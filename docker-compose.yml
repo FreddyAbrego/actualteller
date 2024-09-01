@@ -12,11 +12,15 @@ services:
     environment:
       TZ: America/New_York # Set to your timezone
 
+      # ActualTeller Info
+      ACTUALTELLER_USERNAME: ''             # Site username for app
+      ACTUALTELLER_PASSWORD: ''             # Site password for app
+
       # Teller Account Info
       CERTIFICATE: './auth/certificate.pem' # This can change wherever you have your certificate file
       KEY: './auth/private_key.pem'         # This can change wherever you have your private_key file 
       TRANSACTION_COUNT: '20'               # This is the amount of transactions it will pull on the daily pull
-      TELLER_ENVIRONMENT_TYPE: 'sandbox'    # 'development' use real bank info | 'sandbox' to use fake bank info: username:password to connect any bank
+      TELLER_ENVIRONMENT_TYPE: 'sandbox'    # Set to 'development' use real bank info | 'sandbox' to use fake bank info: username:password to connect any bank
       TELLER_APPLICATION_ID: ''             # Your Teller application id found at https://teller.io/settings/application
 
       # Actual Buget Info
