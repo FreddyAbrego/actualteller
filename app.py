@@ -29,6 +29,11 @@ def verify_password(username, password):
         return True
     return False
 
+@app.before_request
+@auth.login_required
+def before_request():
+    pass
+
 # Define a route for the root URL
 @app.route("/", methods=['get','post'])
 def index():

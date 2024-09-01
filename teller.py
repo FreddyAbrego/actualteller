@@ -88,8 +88,7 @@ class TellerClient:
                     print("Credentials are invalid. Please reauthenticate.")
                 else:
                     print(f"Error occurred: {error_message} (Code: {error_code})")
-
-            return
+                return
             self.transactions[account_id] = resp_json
         except Exception as e:
             print(f"An error occurred: {e}")
