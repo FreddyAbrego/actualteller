@@ -22,8 +22,9 @@ class TellerClient:
     #
     teller_accounts = defaultdict()
 
-    cert_found = True
-    key_found = True
+    # Variables to see if certificate and private key are found
+    cert_found = None
+    key_found = None
 
     # certificate and private key to be used in GET requests
     db = Database(DATABASE)
@@ -37,19 +38,28 @@ class TellerClient:
 
     # default constructor
     def __init__(self):
-        # uses a python dict to make a blank list for the current bank_token
-        if os.environ.get('CERTIFICATE') == None:
+        certificate = os.environ.get('CERTIFICATE')
+        key = os.environ.get('KEY')
+
+        # Checks if Certificate is present
+        if certificate and os.path.isfile(certificate):
+            self.cert_found = True
+        else:
             print("Certificate file not found!")
             self.cert_found = False
-        if os.environ.get('KEY') == None:
+
+        # Checks if Private Key is present
+        if key and os.path.isfile(key): 
+            self.key_found = True
+        else:
             print("Key file not found!")
             self.key_found = False
         
         if self.cert_found and self.key_found:
             self.http = urllib3.PoolManager(
-                cert_file = os.environ.get('CERTIFICATE'),   
+                cert_file = certificate,   
                 cert_reqs = "CERT_REQUIRED",
-                key_file = os.environ.get('KEY')   
+                key_file = key   
             )
         else:
             print("Please pass in your Teller Certificate and Keys")

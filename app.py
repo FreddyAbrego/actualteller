@@ -75,6 +75,7 @@ def index():
         key_found = teller_client.key_found)
     else:       
         print("No Linked Accounts in File")
+
         negative_rows = db.get_negative_rows()
         
         db.close()
@@ -175,7 +176,7 @@ def importTransactions():
     teller_client.list_account_all_transactions(teller_account, linked_token)
     actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
     print("Import complete")
-    return "Import complete"    
+    return "Import complete"
 
 def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
     teller_client = TellerClient()

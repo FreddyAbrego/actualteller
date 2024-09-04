@@ -6,7 +6,6 @@ from collections import defaultdict
 
 load_dotenv()
 class ActualHTTPClient:
-    
     try:
         BASE_URL = os.environ.get('ACTUAL_SERVER_API')
         ACTUAL_BUDGET_SYNC_ID = os.environ.get('ACTUAL_BUDGET_SYNC_ID')
@@ -27,6 +26,7 @@ class ActualHTTPClient:
             for data, accounts in respJson.items():
                 for account in accounts:
                     self.actual_accounts[account['name']] = account['id']
+            print("Actual accounts found!")
         except Exception as e:
             print("Actual Budget Connection Down")
 
@@ -53,8 +53,3 @@ class ActualHTTPClient:
             print("Waiting for response to complete")
         # print("Complete!")
         return response
-
-        
-# calls main()
-if __name__ == '__main__':
-    main()
