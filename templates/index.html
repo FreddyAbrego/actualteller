@@ -1,54 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang=en>
   <head>
-    <title>Actual Budget Linking</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ActualTeller Account Linking</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/actualtellericon.webp') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   </head>
   <body>
-    <h1>Account Linking</h1>
-      <form action="/submit" method="post" onsubmit="return disableButtons(this)">
-        {% if actual_accounts %}
-          {% if teller_accounts %} 
-          <h2>Actual Budget Accounts</h2>            
-            <ul>
-              {% for actual_account in actual_accounts %}
-                <label for="account-select-{{ actual_account }}">Link account: {{ actual_account }}</label><br>
-                  <li>
-                    <select onchange="checkSelects(this);" name="account-select-{{ actual_account }}">
-                      <option selected value="">--Select an Account to Link--</option>
-                      {% for name, id in teller_accounts.items() %}
-                        <option value="{{ id }}">{{ name }}</option>
-                      {% endfor %}
-                    </select>    
-                    <label for="{{ actual_account }}-is-negative"> &pm; Transaction</label><input type="checkbox" name="{{ actual_account }}-is-negative" {% if actual_account in negative_rows %} checked {% endif %}>
-                  </li>                  
-            {% endfor %}
-            </ul>
-            <p><input id="submit" type="submit" value="Submit"></p>
+    <div class="min-h-screen w-full bg-cover bg-center sm:bg-contain sm:bg-fixed md:bg-cover lg:bg-cover xl:bg-cover flex justify-center items-center bg-gray-100 overflow-hidden"
+         style="background-image: url('{{ url_for('static', filename='images/actualTeller.webp') }}');">
+      <div class="absolute bottom-0 left-0 m-2">
+        <img src="{{ url_for('static', filename='images/actualbudget.webp') }}" alt="Top Left Icon" class="h-12 w-12">
+      </div>
+      <div class="grid place-items-center space-y-4 bg-white bg-opacity-80 sm:p-3 lg:p-8 md:p-4 rounded-xl shadow-md w-full max-w-xl mx-auto">
+        <h1 class="text-4xl font-bold text-center">Actual Teller</br>Acccount Linking</h1>
+        <form action="/submit" method="post" onsubmit="return disableButtons(this)" class="space-y-4">
+          {% if teller_accounts %}
+            {% if actual_accounts %}
+              <h2 class="text-3xl font-bold justifytext-center">Actual Budget Accounts</h2>
+              <ul>
+                {% for id, name in actual_accounts.items() %}
+                  <label for="account-select-{{ actual_account }}" class="text-xl text-black-700 font-medium">Link Actual Account: </br> {{ name }} </label>
+                    <li class="mb-4 flex items-center space-x-2">
+                      <select onchange="checkSelects(this);" name="account-select-{{ name }}" class="p-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        <option selected value="">---Select a Teller Account---</option>
+                        {% for name, id in teller_accounts.items() %} 
+                          <option value="{{ id }}">{{ name }}</option>
+                        {% endfor %}
+                      </select>    
+                      <label for="{{ actual_account }}-is-negative" class="text-xl text-black-700"> &pm; Transaction</label><input type="checkbox" name="{{ actual_account }}-is-negative" {% if actual_account in negative_rows %} checked {% endif %} class="rounded">
+                    </li>                  
+                {% endfor %}
+                </ul>
+                <div class="flex space-x-4">
+                  {% if TELLER_APPLICATION_ID != "" and cert_found and key_found %}
+                    <input type="button" id="teller-connect" value="Connect to your bank" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                  {% endif %}
+                  <input id="submit" type="submit" value="Link your accounts" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed">
+                </div>
             {% else %}
-              <p>No Teller Accounts were found. </br>Please check the .env file and set the Teller variables or Connect to your bank below</p>
-            {% endif %}
-        {% else %}
-          <p>No Actual Budget Accounts were found. Please check the .env file and set the Actual Variables</p>
-        {% endif %}    
-      </form>
-      {% if TELLER_APPLICATION_ID != none and cert_found and key_found %}
-        <input type="submit" id="teller-connect" value="Connect to your bank">
-      {% else %}
-        {% if TELLER_APPLICATION_ID == none %}
-          <p>Teller App ID is not set in .env</p>
+              <p class="text-4x1 text-center">⚠️ No Actual Budget Accounts were found. Please check the Environment variables or .env file and set the Actual Variables</p>
+            {% endif %} 
+          {% else %}
+            <p class="text-4x1 text-center"> ⚠️ No Teller Accounts were found. </br>Please connect to your bank(s) below.</p>
+            <div class="grid">
+              {% if TELLER_APPLICATION_ID != "" and cert_found and key_found %}
+                <input type="button" id="teller-connect" value="Connect to your bank" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              {% endif %}
+            </div>
+          {% endif %}           
+        </form>
+        {% if TELLER_APPLICATION_ID == "" %}
+          <p class="text-4x1 text-center">⚠️ Teller App ID was not set as an Environment variable or in .env file</p>
         {% endif %}
         {% if not cert_found %}
-          <p>Teller Certificate not found</p>
+          <p class="text-4x1 text-center">⚠️ Teller Certificate not found</p>
         {% endif %}
         {% if not key_found %}
-          <p>Teller Private Key not found</p>
+          <p class="text-4x1 text-center">⚠️ Teller Private Key not found</p>
         {% endif %}
-      {% endif %}
-      <form action="/teller_connect" id="teller_connect"  method="post" style="display: none;">
-        <p>Bank accounts to Link</p>
-        <ul id="teller_accounts"></ul>
-        <input type="submit" id="save-to-database" value="Save to database">
-      </form>
+        <form action="/teller_connect" id="teller_connect"  method="post" style="display: none;" class="">
+          <p>Bank accounts to Link</p>
+          <ul id="teller_accounts"></ul>
+          <input type="submit" id="save-to-database" value="Save to database" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+        </form>
+      </div>
+      <div class="absolute top-0 right-0 m-2">
+        <img src="{{ url_for('static', filename='images/teller_io.webp') }}" alt="Bottom Right Icon" class="h-12 w-12">
+      </div>
+    </div>
     <script>
       function onLoad() {
         var button = document.getElementById("submit");
@@ -89,7 +110,15 @@
             break;
           }
         }
-        button.disabled = !enableSubmit;
+        if (enableSubmit) {
+          button.disabled = false;
+          button.className = "bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        }
+        else {
+          button.disabled = true;
+          button.className = "bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed"
+        }
+        
         
         // This disables the option to all other selects when it is changed. 
         var selectedOption = selectElement.selectedIndex;

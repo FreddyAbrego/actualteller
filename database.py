@@ -80,14 +80,11 @@ class Database():
     def check_table_data(self):
         self.cur.execute('SELECT COUNT(*) FROM actual_to_teller WHERE is_mapped = 1')
         count =  self.cur.fetchone()[0]
-        # print(count)
-        # print(count > 0)
         return count > 0
 
     def get_negative_rows(self):
         self.cur.execute('SELECT name FROM actual_to_teller WHERE is_neg = 1')
         negative_rows = [row[0] for row in self.cur.fetchall()]
-        # print(f'negative rows: {negative_rows}')
         return negative_rows
 
     def reset(self):

@@ -39,17 +39,18 @@ def before_request():
 def index():
     teller_client = TellerClient()
     actual_client = ActualHTTPClient()
+    actual_client.list_accounts()
     teller_client.list_accounts()
-    db = get_db()
 
     if len(teller_client.bank_tokens) == 0:
         print("This may be a first run or a reset")
-        db.close()
         return render_template("index.html",
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
             cert_found = teller_client.cert_found,
             key_found = teller_client.key_found)
+
+    db = get_db()
 
     if db.check_table_data():
         print("Account mapping found")
@@ -74,14 +75,14 @@ def index():
         cert_found = teller_client.cert_found,
         key_found = teller_client.key_found)
     else:       
-        print("No Linked Accounts in File")
+        print("No Linked Accounts in database")
+
         negative_rows = db.get_negative_rows()
         
         db.close()
-        actual_client.list_accounts()
         
         return render_template("index.html", 
-            actual_accounts = actual_client.actual_accounts.keys(),
+            actual_accounts = actual_client.actual_accounts,
             teller_accounts = teller_client.teller_accounts,
             negative_rows = negative_rows,
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
@@ -117,7 +118,7 @@ def submit():
 
         # Instantiates a dictionary to hold the result from the form
         actual_teller_results = defaultdict()
-        for account, id in actual_client.actual_accounts.items():
+        for id, account in actual_client.actual_accounts.items():
             name = account
             actual_account = id
             teller_account = request.form.get(f'account-select-{account}')
@@ -175,7 +176,7 @@ def importTransactions():
     teller_client.list_account_all_transactions(teller_account, linked_token)
     actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
     print("Import complete")
-    return "Import complete"    
+    return "Import complete"
 
 def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
     teller_client = TellerClient()

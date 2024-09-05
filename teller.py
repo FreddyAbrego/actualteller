@@ -17,42 +17,57 @@ class TellerClient:
     # python dict to hold lists
     banks = defaultdict(list)
     bank_tokens = []
-    #  
     transactions = defaultdict(list)
-    #
     teller_accounts = defaultdict()
 
-    cert_found = True
-    key_found = True
+    # Variables to see if certificate and private key are found
+    cert_found = None
+    key_found = None
 
-    # certificate and private key to be used in GET requests
-    db = Database(DATABASE)
-    # self.bank_tokens = db.view_tokens()
-    connections = db.view_tokens()
-    for connection in connections:
-        bank_tokens.append(connection[2])
-    db.close()
-    for bt in bank_tokens:      
-        banks[bt] = ''
 
     # default constructor
     def __init__(self):
-        # uses a python dict to make a blank list for the current bank_token
-        if os.environ.get('CERTIFICATE') == None:
+        self.get_tokens()
+
+        certificate = os.environ.get('CERTIFICATE')
+        key = os.environ.get('KEY')
+
+        # Checks if Certificate is present
+        if certificate and os.path.isfile(certificate):
+            self.cert_found = True
+        else:
             print("Certificate file not found!")
             self.cert_found = False
-        if os.environ.get('KEY') == None:
+
+        # Checks if Private Key is present
+        if key and os.path.isfile(key): 
+            self.key_found = True
+        else:
             print("Key file not found!")
             self.key_found = False
         
         if self.cert_found and self.key_found:
             self.http = urllib3.PoolManager(
-                cert_file = os.environ.get('CERTIFICATE'),   
+                cert_file = certificate,   
                 cert_reqs = "CERT_REQUIRED",
-                key_file = os.environ.get('KEY')   
+                key_file = key   
             )
         else:
             print("Please pass in your Teller Certificate and Keys")
+    
+    # Function that gets latest bank tokens 
+    def get_tokens(self):
+        self.bank_tokens.clear()
+        db = Database(DATABASE)
+        
+        try:
+            connections = db.view_tokens()
+
+            self.bank_tokens = [connection[2] for connection in connections]
+            self.banks = {token: '' for token in self.bank_tokens} 
+        
+        finally:
+            db.close()
 
     # function for getting the account ids
     def list_accounts(self):
@@ -67,7 +82,7 @@ class TellerClient:
                 acctid = []
                 # loops for every account found in the linked bank
                 for account in resp_json:
-                    acctid .append(account['id'])
+                    acctid.append(account['id'])
                     self.teller_accounts[account['name'] + " " + account['last_four']] = account['id']
                 # adds the Account IDs to the current bank
                 self.banks[bank_token] = acctid
