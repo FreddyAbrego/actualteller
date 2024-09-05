@@ -21,14 +21,15 @@ class ActualHTTPClient:
 
     def list_accounts(self):
         try:
+            self.actual_accounts.clear()
             resp = self._get(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts')
             respJson = json.loads(resp.data)
             for data, accounts in respJson.items():
                 for account in accounts:
-                    self.actual_accounts[account['name']] = account['id']
+                    self.actual_accounts[account['id']] = account['name']
             print("Actual accounts found!")
         except Exception as e:
-            print("Actual Budget Connection Down")
+            print(f'Actual Budget API Error Found: {e}')
 
     def create_accounts(self, encoded_body):        
         resp = self._post(f'/budgets/{self.ACTUAL_BUDGET_SYNC_ID}/accounts', encoded_body)

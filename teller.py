@@ -17,27 +17,18 @@ class TellerClient:
     # python dict to hold lists
     banks = defaultdict(list)
     bank_tokens = []
-    #  
     transactions = defaultdict(list)
-    #
     teller_accounts = defaultdict()
 
     # Variables to see if certificate and private key are found
     cert_found = None
     key_found = None
 
-    # certificate and private key to be used in GET requests
-    db = Database(DATABASE)
-    # self.bank_tokens = db.view_tokens()
-    connections = db.view_tokens()
-    for connection in connections:
-        bank_tokens.append(connection[2])
-    db.close()
-    for bt in bank_tokens:      
-        banks[bt] = ''
 
     # default constructor
     def __init__(self):
+        self.get_tokens()
+
         certificate = os.environ.get('CERTIFICATE')
         key = os.environ.get('KEY')
 
@@ -63,6 +54,20 @@ class TellerClient:
             )
         else:
             print("Please pass in your Teller Certificate and Keys")
+    
+    # Function that gets latest bank tokens 
+    def get_tokens(self):
+        self.bank_tokens.clear()
+        db = Database(DATABASE)
+        
+        try:
+            connections = db.view_tokens()
+
+            self.bank_tokens = [connection[2] for connection in connections]
+            self.banks = {token: '' for token in self.bank_tokens} 
+        
+        finally:
+            db.close()
 
     # function for getting the account ids
     def list_accounts(self):
@@ -77,7 +82,7 @@ class TellerClient:
                 acctid = []
                 # loops for every account found in the linked bank
                 for account in resp_json:
-                    acctid .append(account['id'])
+                    acctid.append(account['id'])
                     self.teller_accounts[account['name'] + " " + account['last_four']] = account['id']
                 # adds the Account IDs to the current bank
                 self.banks[bank_token] = acctid

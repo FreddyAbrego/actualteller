@@ -1,29 +1,47 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Actual Budget Linking</title>
-    </head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ActualTeller Account Linking</title>
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/actualtellericon.webp') }}">
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      </head>
     <body>
-        <h1>Account Linking</h1>
-        {% if linked_actual_teller_accounts %}
-            <p>The following Actual Accounts were linked</p>
-            <p>
-                {% for name in linked_actual_teller_accounts %}
-                    {{ name }} </br>
-                {% endfor %}
-            <p>
-            {% else %}
-                No Accounts were linked
-            </p>
-            {% endif %}
-        {% if unlinked_actual_teller_accounts %}
-            <p>The following Actual Accounts were NOT linked</p>
-            <p>
-                {% for name in unlinked_actual_teller_accounts %}
-                    {{ name }} </br>
-                {% endfor %}
-            </p>
-        {% endif %}
-        <a href="{{ url_for('continue_import') }}" class="btn">Continue to import page</a>
+        <div class="min-h-screen w-full bg-cover bg-center sm:bg-contain sm:bg-fixed md:bg-cover lg:bg-cover xl:bg-cover flex justify-center items-center bg-gray-100 overflow-hidden"
+         style="background-image: url('{{ url_for('static', filename='images/actualTeller.webp') }}');">
+         <div class="absolute bottom-0 left-0 m-2">
+            <img src="{{ url_for('static', filename='images/actualbudget.webp') }}" alt="Top Left Icon" class="h-12 w-12">
+          </div>
+          <div class="grid place-items-center space-y-4 bg-white bg-opacity-80 sm:p-3 lg:p-8 md:p-4 rounded-xl shadow-md w-full max-w-xl mx-auto">
+                <h1 class="text-3xl">Account Linking</h1>
+                <div class="space-y-4">
+                    <div class="flex flex-col items-center space-y-2">
+                        {% if linked_actual_teller_accounts %}
+                            <p class="text-center">The following Actual Accounts were linked</p>
+                            <ul class="list-disc text-left w-64">
+                                {% for name in linked_actual_teller_accounts %}
+                                    <li>{{ name }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="flex flex-col items-center space-y-2">
+                        {% if unlinked_actual_teller_accounts %}
+                            <p class="text-center">The following Actual Accounts were NOT linked</p>
+                            <ul class="list-disc text-left w-64">
+                                {% for name in unlinked_actual_teller_accounts %}
+                                    <li>{{ name }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{{ url_for('continue_import') }}" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer btn">Continue to import page</a>
+            </div>
+            <div class="absolute top-0 right-0 m-2">
+                <img src="{{ url_for('static', filename='images/teller_io.webp') }}" alt="Bottom Right Icon" class="h-12 w-12">
+            </div>
+        </div>
     </body>
 </html>

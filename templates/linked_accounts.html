@@ -1,83 +1,118 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Actual Budget Linking</title>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    </head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ActualTeller Account Linking</title>
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/actualtellericon.webp') }}">
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      </head>
     <body>
-        <h1>Import transactions into ActualBudget</h1>
-            <h2>Linked Accounts</h2>
-            {% if linked_accounts %}
-                <p>Click Import to import all transactions for the account.</p>
-                <p>After importing transactions, you must refresh to import again.</p>
-                <p>Or you can schedule your import automatically below.</p>
-                <ul>
-                    {% for account in linked_accounts %}
-                        <form>
-                            <li>{{ account }}: 
-                                <button onclick="submitImport(this,'{{account}}');" {{ button_status }}>
-                                    Import to ActualBudget
-                                </button>
-                                <p id="response {{account}}"></p>
-                            </li>
-                        </form>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>No accounts were linked. Please Click Reset Links below</p>
-            {% endif %}
-            {% if unlinked_accounts %}
-                <h2>Unlinked Accounts</h2>
-                
-                    <ul>
-                        {% for account in unlinked_accounts %}
-                            <li>{{ account }}:</li>
-                        {% endfor %}
-                    </ul>
-            {% endif %}
-            <form action="/reset" method="get" onsubmit="return disableButtons();"> 
-                <p>If you would like to reset your links, click the following:</p>
-                <p><input type="submit" value="Reset Links" {{ button_status }}></p>
-            </form>
-            <form action="/start_schedule" method="post" onsubmit=""> 
-                <p>Schedule your import to run once a day, for the last {{ TRANSACTION_COUNT }} transactions, by clicking below</p>
-                <h6>Note this amount of transactions is based on your TRANSACTION_COUNT env variable</h6>
-                <p><input id="start" type="submit" value="Schedule Automatic Import" {{ button_status }}></p>
-            </form>
-            <form action="/stop_schedule" method="post" onsubmit="" > 
-                <p>Stop the previous schedule</p>
-                <p><input id="stop" type="submit" value="Stop Automatic Imports" {{ btn_stop_status }}></p>
-            </form>
-            <script>
-                function disableButtons()
-                {
-                    let inputs = document.querySelectorAll("input[type='submit']");
-                    // Add a click event listener to each input
-                    for (var i = 0; i < inputs.length; i++) {
-                        inputs[i].disabled = true;
-                        inputs[i].value = "Resetting..."
-                    }
+        <div class="min-h-screen w-full bg-cover bg-center sm:bg-contain sm:bg-fixed md:bg-cover lg:bg-cover xl:bg-cover flex justify-center items-center bg-gray-100 overflow-hidden"
+         style="background-image: url('{{ url_for('static', filename='images/actualTeller.webp') }}');">
+            <div class="fixed bottom-0 left-0 m-2">
+                <img src="{{ url_for('static', filename='images/actualbudget.webp') }}" alt="Top Left Icon" class="h-12 w-12">
+            </div>
+            <div class="grid place-items-center space-y-4 bg-white bg-opacity-80 sm:p-3 lg:p-8 md:p-4 rounded-xl shadow-md w-full max-w-xl mx-auto">
+                    <h1 class="text-3xl text-center">Import Bank transactions into ActualBudget</h1>
+                        <div class="space-y-4">                            
+                            {% if linked_accounts %}
+                                <div class="flex flex-col items-left space-x-4 space-y-2 leading-relaxed">
+                                    <h2 class="text-2xl text-center">Linked Actual Accounts</h2>                                
+                                    <p>Click Import to import all transactions for the account.</p>
+                                    <p>After importing transactions, you must refresh to import again.</p>
+                                    <p>Or you can schedule your import automatically below.</p>
+                                </div>
+                                <div class="flex flex-col items-center space-x-4 space-y-2">
+                                    <h3 class="text-xl">Manual Import</h3>
+                                    <ul class="items-left space-y-2 ">
+                                        {% for account in linked_accounts %}
+                                            <form>
+                                                <li class="flex flex-col space-y-2 text-center">
+                                                    <input type="submit" value="Manual Import for {{ account}}" onclick="submitImport(this,'{{account}}');" {{ button_status }} 
+                                                    class="justify-self-end {% if button_status == 'enabled' %}bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
+                                                    {% else %}bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed {% endif %}">
+                                                </li>
+                                            </form>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}                            
+                            {% if unlinked_accounts %}
+                                <div class="flex flex-col items-center space-y-2">
+                                    <h2 class="text-2xl text-center">Unlinked Actual Accounts</h2>
+                                    <ul class="list-disc space-y-2">
+                                        {% for account in unlinked_accounts %}
+                                            <li>{{ account }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                            <div class="flex flex-col items-center space-x-4 space-y-2">
+                                <h2 class="text-2xl text-center">Reset Links</h2>
+                                <form action="/reset" method="get" onsubmit="return disableButtons();">
+                                    <div class="grid grid-col items-center space-y-2 min-w-full">
+                                        <p>Click to reset your Actual Teller links</p>
+                                        <input type="submit" value="Reset Links" {{ button_status }} 
+                                            class="{% if button_status == 'enabled' %}bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer
+                                            {% else %}bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed {% endif %}">
+                                    </div>
+                                </form>
+                            </div>
+                            <h2 class="text-2xl text-center">Scheduling Automatic Imports</h2>
+                            <div class="flex flex-col items-center space-x-4 space-y-4">
+                                <form action="/start_schedule" method="post" onsubmit=""> 
+                                    <div class="flex flex-col items-center space-y-2">
+                                        <p>Schedule your import to run once a day, for the last <b>{{ TRANSACTION_COUNT }}</b> transactions</p>
+                                        <input id="start" type="submit" value="Schedule Automatic Import" {{ button_status }} 
+                                        class="{% if button_status == 'enabled' %}bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
+                                        {% else %}bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed {% endif %}">
+                                    </div>
+                                </form>
+                                <form class="flex flex-col items-center space-y-2 min-w-full" action="/stop_schedule" method="post" onsubmit=""> 
+                                    <h3 class="text-lg">Stop the previous schedule</h3>
+                                    <input id="stop" type="submit" value="Stop Automatic Imports" {{ btn_stop_status }} 
+                                        class="{% if btn_stop_status == 'enabled' %}bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
+                                        {% else %}bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed {% endif %}">
+                                </form>
+                            </div>
+                        </div>
+                </div>
+            <div class="fixed top-0 right-0 m-2">
+                <img src="{{ url_for('static', filename='images/teller_io.webp') }}" alt="Bottom Right Icon" class="h-12 w-12">
+            </div>
+        </div>
+        <script>
+            function disableButtons()
+            {
+                let inputs = document.querySelectorAll("input[type='submit']");
+                // Add a click event listener to each input
+                for (var i = 0; i < inputs.length; i++) {
+                    inputs[i].disabled = true;
+                    inputs[i].value = "Resetting..."
+                    inputs[i].className = "bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed"
                 }
+            }
 
-                function submitImport(button,account) {
-                    data = {
-                        account: account
-                    }
-                    p = "response " + account                    
-                    button.disabled = true;
-                    button.textContent = "Importing...";
-                    fetch("/import", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(data)
-                    })
-                    .then(response => response.text())
-                    .then(data => {
-                        document.getElementById(p).innerHTML = data
-                    })
-                }
+            function submitImport(input,account) {
+                data = {
+                    account: account
+                }                   
+                input.disabled = true;
+                input.value = "Importing...";
+                input.className = "bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed"
+                fetch("/import", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.text())
+                .then(data => {
+                    input.value="Import Complete"
+                })
+            }
         </script>
     </body>
 </html>
