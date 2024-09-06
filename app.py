@@ -129,7 +129,6 @@ def submit():
         linked_actual_teller_accounts = []
         unlinked_actual_teller_accounts = []
         items = db.view_items()
-        print("All items:")
         for item in items:
             if bool(item[5]):
                 linked_actual_teller_accounts.append(item[1])
