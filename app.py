@@ -2,6 +2,10 @@ from flask import Flask, request, render_template, redirect, current_app, sessio
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.jobstores.base import JobLookupError
+from apscheduler.triggers.cron import CronTrigger
 from teller import TellerClient
 from actualhttp import ActualHTTPClient
 import dotenv
@@ -10,7 +14,7 @@ import os
 import json
 from collections import defaultdict
 from database import Database
-from config import DATABASE
+from config import DATABASE, JOBS_DATABASE
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 
@@ -20,9 +24,27 @@ auth = HTTPBasicAuth()
 app.config['USERNAME'] = os.environ.get('ACTUALTELLER_USERNAME')
 app.config['PASSWORD'] = generate_password_hash(os.environ.get('ACTUALTELLER_PASSWORD'))
 app.config['DATABASE'] = DATABASE
+app.config['JOBS_DB'] = JOBS_DATABASE
 app.secret_key = os.environ.get('ACTUAL_TELLER_SECRET')
 app.app_context().push()
-scheduler = BackgroundScheduler()
+jobstores = {
+    'default': SQLAlchemyJobStore(url=app.config['JOBS_DB'])
+}
+
+executors = {
+    'default': ThreadPoolExecutor(10)
+}
+
+job_defaults = {
+    'coalesce': False,
+    'max_instances': 1,
+    'misfire_grace_time': 3600  # If a job is missed, it can still be run within 1 hour (3600 seconds)
+}
+
+# Initialize the scheduler with the job store
+scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults)
+if not scheduler.running:
+    scheduler.start()
 
 @auth.verify_password
 def verify_password(username, password):
@@ -52,8 +74,7 @@ def index():
 
     if db.check_table_data():
         print("Account mapping found")
-        job = scheduler.get_job("BankImports")
-        if job:
+        if is_scheduler_running():
             button_status = "disabled"
             btn_stop_status = "enabled"
         else:
@@ -78,7 +99,7 @@ def index():
     else:       
         print("No Linked Accounts in database")
         db.close()
-        previous_linked_accounts = session.get("previous_linked_accounts")
+        previous_linked_accounts = session.get("previous_linked_accounts", [])
         return render_template("index.html", 
             actual_accounts = actual_client.actual_accounts,
             teller_accounts = teller_client.teller_accounts,
@@ -119,7 +140,8 @@ def submit():
         for id, account in actual_client.actual_accounts.items():
             name = account
             actual_account = id
-            teller_account = request.form.get(f'account-select-{account}')
+            # teller_account = request.form.get(f'select-{account}')
+            teller_account = request.form.get(f'select-{id}')
             is_mapped = False if teller_account == '' else True
             db.insert_item(name, actual_account, teller_account, (int(is_mapped)))
 
@@ -174,7 +196,6 @@ def importTransactions():
 
     teller_client.list_account_all_transactions(teller_account, linked_token)
     actual_request = teller_tx_to_actual_tx(actual_account, teller_account, account_type)
-    print("Import complete")
     return "Import complete"
 
 def teller_tx_to_actual_tx(actual_account, teller_account, account_type):
@@ -222,29 +243,25 @@ def teller_tx_to_actual_tx(actual_account, teller_account, account_type):
 
 # This starts the Automatic Importing
 @app.route('/start_schedule', methods = ['POST'])
-def start_schedule():    
-    try:
-        # run everyday at midnight
-        scheduler.add_job(get_transactions_and_import, "cron", hour="0", id="BankImports")        
-        # scheduler.add_job(get_transactions_and_import, "cron", minute="*/5", id="BankImports")
-        scheduler.start()
-        print("Scheduler is now running")
-        job = scheduler.get_job("BankImports")
+def start_schedule():
+    if not scheduler.get_job('BankImports'):
+        scheduler.add_job(get_transactions_and_import, CronTrigger(hour=0, minute=0), id='BankImports',replace_existing=True)
+    job = scheduler.get_job('BankImports')
+    if job:
+        print(f'Initial import is starting...')
+        scheduler.resume_job('BankImports')
+        job = scheduler.get_job('BankImports')
         job.func()
-        # Prints the next run for imports in a YYYY-MM-DD HH:MM:SS format
-        print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    except Exception as e:
-        print(e)
     return redirect('/')
 
 # This stops the Automatic Importing
 @app.route('/stop_schedule', methods = ['POST'])
 def stop_schedule():
-    try:
-        scheduler.remove_job("BankImports")   
-        scheduler.shutdown()   
-    except Exception as e:
-        print(e)
+    scheduler_status('Scheduler Stopped Successfully')
+    job = scheduler.get_job('BankImports')
+    if job:
+        # Pause the job instead of removing it
+        scheduler.pause_job('BankImports')
     return redirect('/')
 
 # This is the function called to do the Get Requests from Teller and Post Request into ActualHTTPAPI
@@ -278,9 +295,28 @@ def transaction_to_actual(request_body, account):
 def get_db():
     return Database(app.config['DATABASE'])
 
+def is_scheduler_running():
+    job = scheduler.get_job('BankImports')
+    if job is None:
+        scheduler_status('Scheduler not running')
+        return False
+    else:
+        if job.next_run_time is None:
+            scheduler_status('Scheduler is currently stopped')
+            return False
+        else:
+            scheduler_status('Scheduler Running')
+            print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            return True
+
+def scheduler_status(status):
+    print(f'Scheduler Status: {status}')
+
 # calls main()
 if __name__ == '__main__':
     # app.run(debug=True)
+    db = get_db()
+    db.close()
     app.run(debug=True, port=5000, host='0.0.0.0')
 
     

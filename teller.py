@@ -62,7 +62,7 @@ class TellerClient:
         try:
             connections = db.view_tokens()
             self.bank_tokens = [connection[2] for connection in connections]
-            self.banks = {token: '' for token in self.bank_tokens}         
+            self.banks = {token: [] for token in self.bank_tokens}       
         finally:
             db.close()
 
