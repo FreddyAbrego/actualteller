@@ -18,6 +18,7 @@ class ActualHTTPClient:
 
     def __init__(self):
         self.http = urllib3.PoolManager()
+        self.list_accounts()
 
     def list_accounts(self):
         try:
@@ -27,7 +28,7 @@ class ActualHTTPClient:
             for data, accounts in respJson.items():
                 for account in accounts:
                     self.actual_accounts[account['id']] = account['name']
-            print("Actual accounts found!")
+            # print("Actual accounts found!")
         except Exception as e:
             print(f'Actual Budget API Error Found: {e}')
 

@@ -15,22 +15,32 @@
       </div>
       <div class="grid place-items-center space-y-4 bg-white bg-opacity-80 sm:p-3 lg:p-8 md:p-4 rounded-xl shadow-md w-full max-w-xl mx-auto">
         <h1 class="text-4xl font-bold text-center">Actual Teller</br>Acccount Linking</h1>
-        <form action="/submit" method="post" onsubmit="return disableButtons(this)" class="space-y-4">
+        <h2 class="text-3xl font-bold">Actual Budget Accounts</h2>
+        <form action="/submit" method="post" onsubmit="return disableButtons(this)" class="space-y-4 items-center">
           {% if teller_accounts %}
             {% if actual_accounts %}
-              <h2 class="text-3xl font-bold justifytext-center">Actual Budget Accounts</h2>
-              <ul>
-                {% for id, name in actual_accounts.items() %}
-                  <label for="account-select-{{ actual_account }}" class="text-xl text-black-700 font-medium">Link Actual Account: </br> {{ name }} </label>
-                    <li class="mb-4 flex items-center space-x-2">
-                      <select onchange="checkSelects(this);" name="account-select-{{ name }}" class="p-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500">
+              <ul class="flex flex-col items-center space-y-4 m-0">
+                {% for actual_id, actual_name in actual_accounts.items() %}
+                 <li class="flex items-center space-x-2 w-full">
+                    <label for="account-select-{{ actual_name }}" class="text-xl text-black-700 font-medium">Link Actual Account </br> {{ actual_name }}: </label>
+                      <select onchange="checkSelects(this);" name="account-select-{{ actual_name }}" class="p-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 w-2/3">
                         <option selected value="">---Select a Teller Account---</option>
-                        {% for name, id in teller_accounts.items() %} 
-                          <option value="{{ id }}">{{ name }}</option>
+                        {% for teller_name, accounts in teller_accounts.items() %}
+                        {% set account = accounts[0] %} 
+                          <option value="{{ accounts[0] }}"
+                              {% if (actual_name, accounts[0]) in previous_linked_accounts %}selected{% endif %}>
+                            {{ teller_name }}
+                          </option>
+                          <!-- Debugging Output -->
+                          <span>Current AA: {{ actual_name }}</span><br>
+                          <span>Account ID (ta): {{ accounts[0] }}</span><br>
+                          <span>Previous Linked Accounts: {{ previous_linked_accounts }}</span><br>
+                          <span>Is current match? ({{ (actual_name, accounts[0]) in previous_linked_accounts }})</span><br>
                         {% endfor %}
-                      </select>    
-                      <label for="{{ actual_account }}-is-negative" class="text-xl text-black-700"> &pm; Transaction</label><input type="checkbox" name="{{ actual_account }}-is-negative" {% if actual_account in negative_rows %} checked {% endif %} class="rounded">
-                    </li>                  
+                      </select> 
+                      </br>
+                      
+                  </li>                  
                 {% endfor %}
                 </ul>
                 <div class="flex space-x-4">
@@ -71,20 +81,52 @@
       </div>
     </div>
     <script>
+      window.addEventListener('DOMContentLoaded', function() {
+        // Get all select elements
+        var selects = document.querySelectorAll('select');
+        
+        // Trigger the onchange behavior for each select element
+        selects.forEach(function(selectElement) {
+          var selectedOption = selectElement.selectedIndex;
+      
+          // Disable the options in other selects based on the current selection
+          for (var i = 0; i < selects.length; i++) {
+            if (selects[i] == selectElement)
+              continue; // Skip the current select element
+      
+            selects[i].options[selectedOption].disabled = true;
+            selects[i].options[0].disabled = false; // Always allows the default option to be selected
+          }
+      
+          // Handle the previous selected option
+          var previousOption = selectElement.getAttribute('data-previous');
+          if (previousOption != null) {
+            for (var i = 0; i < selects.length; i++) {
+              if (selects[i] == selectElement)
+                continue; // Skip the current select element
+              selects[i].options[previousOption].disabled = false;
+            }
+          }
+      
+          // Updating the previous option with the current option
+          selectElement.setAttribute('data-previous', selectedOption);
+        });
+      });
+
       function onLoad() {
         var button = document.getElementById("submit");
         button.disabled = true;
         // Get all the select elements in the document
-        var selects = document.querySelectorAll("select");
+        //var selects = document.querySelectorAll("select");
         
         // Loop through each select element
-        for (var i = 0; i < selects.length; i++) {
+        //for (var i = 0; i < selects.length; i++) {
           // Get the first option of the select element
-          var firstOption = selects[i].options[0];
+        //  var firstOption = selects[i].options[0];
 
           // Set the select element's value to the first option's value
-          selects[i].value = firstOption.value;
-        }
+       //   selects[i].value = firstOption.value;
+       // }
       }
 
       function disableButtons(button) {
@@ -138,6 +180,8 @@
         }
         // Updating previous option with the current option
         selectElement.setAttribute('data-previous', selectedOption);
+       
+          
       }
     </script>
     <script src="https://cdn.teller.io/connect/connect.js"></script>
@@ -149,6 +193,8 @@
         var tellerConnect = TellerConnect.setup({
           applicationId: "{{ TELLER_APPLICATION_ID }}",
           environment: "{{ TELLER_ENVIRONMENT_TYPE }}",
+          products: ['verify', 'transactions'],
+          enrollmentId: '{{ ENROLLMENT_ID }}',
           selectAccount: 'multiple',
           onInit: function() {
             console.log("Teller Connect has initialized");
