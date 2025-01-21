@@ -23,17 +23,31 @@
                                     <p>After importing transactions, you must refresh to import again.</p>
                                     <p>Or you can schedule your import automatically below.</p>
                                 </div>
-                                <div class="flex flex-col items-center space-x-4 space-y-2">
+                                <div class="flex flex-col items-center space-x-4 space-y-4">
+                                    <h3 class="text-xl">Reauthenticate Account</h3>
+                                    <div class="flex flex-col space-y-4 items-center text-center">
+                                        <select id="enrollment-select" class="p-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                            <option selected value="">--Account to Reauthenticate--</option>
+                                            {% for name, enrollmentId in linked_accounts %} 
+                                                <option value="{{ enrollmentId }}">{{ name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div>
+                                            {% if TELLER_APPLICATION_ID != "" and cert_found and key_found %}
+                                                <input type="button" id="teller-connect" enrollment_id="" value="Reauthenticate Connection" class= "bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed">	
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                     <h3 class="text-xl">Manual Import</h3>
-                                    <ul class="items-left space-y-2 ">
-                                        {% for account in linked_accounts %}
-                                            <form>
-                                                <li class="flex flex-col space-y-2 text-center">
-                                                    <input type="submit" value="Manual Import for {{ account}}" onclick="submitImport(this,'{{account}}');" {{ button_status }} 
+                                    <ul class="space-y-4">
+                                        {% for account, enrollment_id in linked_accounts %}
+                                            <li class="flex flex-row space-x-4 justify-center">
+                                                <form>
+                                                    <input type="submit" value="Manual Import for {{ account }}" onclick="submitImport(this,'{{account}}');" {{ button_status }} 
                                                     class="justify-self-end {% if button_status == 'enabled' %}bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
                                                     {% else %}bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed {% endif %}">
-                                                </li>
-                                            </form>
+                                                </form>
+                                            </li>
                                         {% endfor %}
                                     </ul>
                                 </div>
@@ -83,6 +97,14 @@
             </div>
         </div>
         <script>
+            window.onload = function() {
+                var selectElement = document.getElementById("enrollment-select");
+                if (selectElement) {
+                    selectElement.selectedIndex = 0;
+                };
+                var button = document.getElementById("teller-connect");
+                button.disabled = true;
+            };
             function disableButtons()
             {
                 let inputs = document.querySelectorAll("input[type='submit']");
@@ -92,7 +114,7 @@
                     inputs[i].value = "Resetting..."
                     inputs[i].className = "bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed"
                 }
-            }
+            };
 
             function submitImport(input,account) {
                 data = {
@@ -112,7 +134,59 @@
                 .then(data => {
                     input.value="Import Complete"
                 })
-            }
+            };
+
+        </script>
+        <script src="https://cdn.teller.io/connect/connect.js"></script>
+        <script>
+            var ul = document.getElementById("teller_accounts");
+            var form = document.getElementById("teller_connect");
+            var button = document.getElementById("teller-connect");
+            var selectElement = document.getElementById("enrollment-select");
+
+            
+
+            // Part 2. Initialize & configure the client library
+            selectElement.addEventListener("change", function() {
+                var selectedOption = selectElement.selectedIndex;
+                var selected_text = selectElement.options[selectedOption].text;
+                var enrollmentId = selectElement.options[selectedOption].value;
+                
+                console.log(enrollmentId)
+
+                var tellerConnect = TellerConnect.setup({
+                    applicationId: "{{ TELLER_APPLICATION_ID }}",
+                    environment: "{{ TELLER_ENVIRONMENT_TYPE }}",
+                    products: ['verify', 'transactions'],
+                    enrollmentId: enrollmentId,
+                    selectAccount: 'multiple',
+                    onInit: function() {
+                        console.log("Teller Connect has initialized");
+                    },
+                    // Part 3. Handle a successful enrollment's accessToken
+                    onSuccess: function(enrollment) {
+                        console.log("Reauthentication success")
+                    },
+                    onExit: function() {
+                        console.log("User closed Teller Connect");
+                    }
+                });
+
+                function handleTellerConnectClick() {
+                    tellerConnect.open();
+                };
+
+                if (selectedOption !== 0){
+                    button.disabled = false;
+                    button.className = "bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer";
+                    button.addEventListener('click', handleTellerConnectClick);
+                }                    
+                else {
+                    button.disabled = true;
+                    button.className = "bg-gray-600 text-white font-semibold py-2 px-4 rounded-md cursor-not-allowed";
+                    button.removeEventListener('click', handleTellerConnectClick);
+                }
+            });
         </script>
     </body>
 </html>

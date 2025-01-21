@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, current_app
+from flask import Flask, request, render_template, redirect, current_app, session
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -20,6 +20,7 @@ auth = HTTPBasicAuth()
 app.config['USERNAME'] = os.environ.get('ACTUALTELLER_USERNAME')
 app.config['PASSWORD'] = generate_password_hash(os.environ.get('ACTUALTELLER_PASSWORD'))
 app.config['DATABASE'] = DATABASE
+app.secret_key = os.environ.get('ACTUAL_TELLER_SECRET')
 app.app_context().push()
 scheduler = BackgroundScheduler()
 
@@ -39,9 +40,8 @@ def before_request():
 def index():
     teller_client = TellerClient()
     actual_client = ActualHTTPClient()
-    actual_client.list_accounts()
-    teller_client.list_accounts()
-
+    db = get_db()
+    
     if len(teller_client.bank_tokens) == 0:
         print("This may be a first run or a reset")
         return render_template("index.html",
@@ -49,8 +49,6 @@ def index():
             TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
             cert_found = teller_client.cert_found,
             key_found = teller_client.key_found)
-
-    db = get_db()
 
     if db.check_table_data():
         print("Account mapping found")
@@ -61,10 +59,10 @@ def index():
         else:
             button_status = "enabled"
             btn_stop_status = "disabled"
-        
-        linked_accounts = db.get_linked_accounts_names()
+
         unlinked_accounts = db.get_unlinked_accounts_names()
-        
+        linked_accounts = db.get_actual_name_from_teller_accounts() 
+
         db.close()
         return render_template("linked_accounts.html", 
         linked_accounts=linked_accounts,
@@ -73,22 +71,22 @@ def index():
         btn_stop_status = btn_stop_status,
         TRANSACTION_COUNT=teller_client.TRANSACTION_COUNT,
         cert_found = teller_client.cert_found,
-        key_found = teller_client.key_found)
+        key_found = teller_client.key_found,
+        teller_accounts = teller_client.teller_accounts,
+        TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
+        TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE)
     else:       
         print("No Linked Accounts in database")
-
-        negative_rows = db.get_negative_rows()
-        
         db.close()
-        
+        previous_linked_accounts = session.get("previous_linked_accounts")
         return render_template("index.html", 
             actual_accounts = actual_client.actual_accounts,
             teller_accounts = teller_client.teller_accounts,
-            negative_rows = negative_rows,
             TELLER_APPLICATION_ID = teller_client.TELLER_APPLICATION_ID,
             TELLER_ENVIRONMENT_TYPE = teller_client.TELLER_ENVIRONMENT_TYPE,
             cert_found = teller_client.cert_found,
-            key_found = teller_client.key_found)
+            key_found = teller_client.key_found,
+            previous_linked_accounts = previous_linked_accounts)
 
 # Define a route for the form submission
 @app.route('/teller_connect', methods=['GET', 'POST'])
@@ -98,12 +96,14 @@ def teller_connect():
 
     bank = defaultdict()
     # Get tokens from the webpage
-    teller_tokens = request.form.getlist('teller_token')
+    teller_token = request.form.get('teller_token')
 
     db = get_db()
-    for tt in teller_tokens:
-        bank, token = tt.split(',')
-        db.insert_token(bank,token)
+
+    bank, token = teller_token.split(',')
+    db.insert_token(bank,token)
+    teller_client.retrieve_accounts(token)
+
     db.close()
     return redirect('/')
 
@@ -116,21 +116,18 @@ def submit():
         teller_client = TellerClient()
         actual_client = ActualHTTPClient()  
 
-        # Instantiates a dictionary to hold the result from the form
-        actual_teller_results = defaultdict()
         for id, account in actual_client.actual_accounts.items():
             name = account
             actual_account = id
             teller_account = request.form.get(f'account-select-{account}')
-            neg = True if request.form.get(f'{account}-is-negative') else False
             is_mapped = False if teller_account == '' else True
-            db.insert_item(name, actual_account, teller_account, (int(neg)), (int(is_mapped)))
+            db.insert_item(name, actual_account, teller_account, (int(is_mapped)))
 
         linked_actual_teller_accounts = []
         unlinked_actual_teller_accounts = []
         items = db.view_items()
         for item in items:
-            if bool(item[5]):
+            if bool(item[4]):
                 linked_actual_teller_accounts.append(item[1])
             else:
                 unlinked_actual_teller_accounts.append(item[1])
@@ -148,6 +145,8 @@ def submit():
 def reset():
     if request.method == 'GET':
         db = get_db()
+        previous_accounts = db.get_accounts_for_reset()
+        session["previous_linked_accounts"] = previous_accounts
         db.reset()
         db.close()
         print("Reseting links")
@@ -167,21 +166,31 @@ def importTransactions():
     db = get_db()
 
     data = request.get_json()
-    actual_account, teller_account, isNeg = db.get_accounts_by_name(data["account"])
-
+    print(data["account"])
+    actual_account, teller_account, account_type = db.get_accounts_by_name(data["account"])
+    
+    linked_token = db.get_token_from_account_id(teller_account)
     db.close()
 
-    linked_token = get_bank_token(teller_account)
     teller_client.list_account_all_transactions(teller_account, linked_token)
-    actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
+    actual_request = teller_tx_to_actual_tx(actual_account, teller_account, account_type)
     print("Import complete")
     return "Import complete"
 
-def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
+def teller_tx_to_actual_tx(actual_account, teller_account, account_type):
     teller_client = TellerClient()
     transactions = teller_client.transactions[teller_account]
     transaction_batches = []
     batch_size = 10
+
+    if account_type == 'depository':
+        is_negative = 1
+    elif account_type == 'credit':
+        is_negative = 0
+    else:
+        print("Found exception, please report, defaulting to not negative")
+        is_negative = 0
+
     if (len(transactions) == 0):
         print("No Transactions on this Account")
         return
@@ -195,7 +204,7 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
         last_transaction = batch[-1]
         for tx in batch:      
             # This will be used to determine if the amount should be multiplied by -1, as some bank amount are negative
-            amount = int(float(tx["amount"]) * (100 if isNeg else -100))
+            amount = int(float(tx["amount"]) * (100 if is_negative else -100))
             # Json that will be sent to Actual
             body = {
                 "account": actual_account,
@@ -209,15 +218,7 @@ def teller_tx_to_actual_tx(actual_account, teller_account, isNeg):
                 request_body += ","
         transaction_to_actual(request_body, actual_account)
 
-def get_bank_token(account):
-    tc = TellerClient()
-    token = ''
-    # print(tc.bank_tokens)
-    for bank_token, connection in tc.banks.items():       
-        if account in connection:
-            token = bank_token
-            break
-    return bank_token
+
 
 # This starts the Automatic Importing
 @app.route('/start_schedule', methods = ['POST'])
@@ -229,6 +230,7 @@ def start_schedule():
         scheduler.start()
         print("Scheduler is now running")
         job = scheduler.get_job("BankImports")
+        job.func()
         # Prints the next run for imports in a YYYY-MM-DD HH:MM:SS format
         print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
@@ -251,15 +253,17 @@ def get_transactions_and_import():
         teller_client = TellerClient()
         db = get_db()
         linked_accounts = db.get_all_linked_accounts()
-        db.close()        
-        for name, actual_account, teller_account, isNeg  in linked_accounts:
+
+        for name, actual_account, teller_account, account_type in linked_accounts:
             teller_client.transactions.clear()
-            linked_token = get_bank_token(teller_account)
+            linked_token = db.get_token_from_account_id(teller_account)
             teller_client.list_account_auto_transactions(teller_account, linked_token)
             print(f'Import beginning for Account: {name}')
-            actual_request = teller_tx_to_actual_tx(actual_account, teller_account, isNeg)
+            actual_request = teller_tx_to_actual_tx(actual_account, teller_account, account_type)
             print('Import Complete')
         print("Scheduled task is completed")
+        
+        db.close() 
     # Prints the next run for imports in a YYYY-MM-DD HH:MM:SS format
     job = scheduler.get_job("BankImports")
     print(f"Next run time for Imports: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
