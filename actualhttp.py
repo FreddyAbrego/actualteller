@@ -28,7 +28,6 @@ class ActualHTTPClient:
             for data, accounts in respJson.items():
                 for account in accounts:
                     self.actual_accounts[account['id']] = account['name']
-            # print("Actual accounts found!")
         except Exception as e:
             print(f'Actual Budget API Error Found: {e}')
 

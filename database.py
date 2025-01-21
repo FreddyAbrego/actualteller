@@ -42,8 +42,8 @@ class Database():
     def insert_item(self, name, actual_account, teller_account, is_mapped):
         self.cur.execute(
             ''' UPDATE actual_to_teller SET name=?, actual_account=?, teller_account=?, is_mapped=?
-            WHERE name=?
-            ''',(name, actual_account, teller_account, is_mapped, name))
+            WHERE actual_account=?
+            ''',(name, actual_account, teller_account, is_mapped, actual_account))
         if self.cur.rowcount == 0:
             self.cur.execute(
                 '''INSERT INTO actual_to_teller
@@ -125,7 +125,7 @@ class Database():
     def get_accounts_for_reset(self):
         self.cur.execute('''
             SELECT 
-                att.name,
+                att.actual_account,
                 att.teller_account
             FROM 
                 actual_to_teller AS att
