@@ -1,7 +1,7 @@
 version: '3.3'
 services:
   actualteller:
-    image: freddyabrego/actualteller:latest
+    image: ghcr.io/freddyabrego/actualteller:latest
     container_name: actualteller
     volumes:
       - '/data:/app/auth'                   # This would be where you store your Teller Certificate and Private Key files
