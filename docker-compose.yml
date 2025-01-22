@@ -15,6 +15,8 @@ services:
       # ActualTeller Info
       ACTUALTELLER_USERNAME: ''             # Site username for app
       ACTUALTELLER_PASSWORD: ''             # Site password for app
+      # ActualTeller Secret
+      ACTUAL_TELLER_SECRET: ''              # Set the secret that would be use for Sessions
 
       # Teller Account Info
       CERTIFICATE: './auth/certificate.pem' # This can change wherever you have your certificate file
